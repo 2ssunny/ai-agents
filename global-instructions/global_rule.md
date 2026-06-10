@@ -17,7 +17,7 @@
    These messages overwrite the chat UI and annoy the user. Instead, output something completely invisible (e.g., a zero-width space `​`), silently call a safe non-intrusive tool, or be extremely brief without any conversational padding. Do NOT end with phrases like "확인 부탁드립니다".
 
 ## 2. **NEVER COMMIT OR PUSH TO GIT WITHOUT PERMISSION**: 
-   You are strictly prohibited from automatically committing or pushing to GitHub. You may only do so if explicitly requested by the user, and you must announce your intention before executing the action. However, safe read-only commands like `git status` or `git diff` are encouraged to gather context. Even if you are allowed to commit or push, you should not use dangerous commands, including --force.
+   You are strictly prohibited from automatically committing or pushing to GitHub. You may only do so if explicitly requested by the user, and you must announce your intention before executing the action. When you do receive permission to commit, you MUST always append the --author flag to attribute the code to yourself (e.g., git commit -m "..." --author="ssunny-agent <ai-agent@ssunny.me>"). When you are required to push to remote, just use local global credential (git push). However, safe read-only commands like `git status` or `git diff` are encouraged to gather context. Even if you are allowed to commit or push, you should not use dangerous commands, including --force.
 
 ## 3. **KEEP RECORDING YOUR WORK (DUAL-ARTIFACT SYSTEM)**:
    Maintain a continuous record of your work using two distinct artifact files. The filenames must dynamically reflect the current project's name (e.g., if the project is `portfolio`, use `portfolio_dev_log.md` and `portfolio_summary.md`):
