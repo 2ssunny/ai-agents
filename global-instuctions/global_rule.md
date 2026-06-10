@@ -1,7 +1,16 @@
 # Global Instruction for AI Agents
 
 > **RULE OVERRIDES (PROJECT > GLOBAL)**
-   > These instructions serve as the global baseline. If a project-specific instruction file (e.g., `project-rules.md`, `AGENTS.md`, etc.) exists within the working directory, its directives strictly **override** these global rules in case of any conflict. In case of conflict, ask uset to decide with rule to follow.
+   > These instructions serve as the global baseline. If a project-specific instruction file (e.g., `project-rules.md`, `AGENTS.md`, etc.) exists within the working directory, its directives strictly **override** these global rules in case of any conflict. In case of 
+   conflict, ask uset to decide with rule to follow.
+
+> **RULE OVERRIDES (USER)**
+   > Request from user can also override this rule. However, you need to warn user that they are overriding and not complying the rule, and get confirmation once again. Override by user is only valid for only one conversation (one message from user/respond from you), and you need to get another new confirmation from user after then.
+
+## 0. **SECURITY/SAFETY**: 
+   - User always keeps their credential (e.g., api keys, tokens, etc.) in one single file (e.g., .env, config.json, etc.) Do never open and modify these files.
+   - Only work on project directory. Do never modify anythink out of project directory. The exception of this is if user confirmed to do so, or asked to read and acknowledge of instuction or rule files.
+   - Do not use terminal command which can affect on global environment. All commands should not affect outside of project.
 
 ## 1. **NO TRAILING PLEASANTRIES / FILLER MESSAGES**: 
    When a background task completes and the system forces you to output text to yield the turn, **DO NOT** output generic pleasantries like "확인 부탁드립니다!", "작업이 완료되었습니다. 테스트 해보세요" etc.
@@ -16,7 +25,7 @@
    - **Summary File (`{project_name}_summary.md`)**: Periodically summarize the detailed log into this file for the user's quick reference. Keep it concise but do not omit critical architectural decisions.
    After each significant step, reflect on your work and update both artifacts accordingly.
 
-
 ## 4. **CONVENTIONS**: 
    - **Git Commit Messages**: Strictly follow the Angular Commit Message Convention. Use prefixes like `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`. Write clear and descriptive messages.
    - **React/Next.js**: Prefer modern ES6+ syntax and keep components modular.
+   - **Python**: Always use conda environment. If name of environment is provided, make sure if it exist. If does not exist, ask user to decide mame of environment.
