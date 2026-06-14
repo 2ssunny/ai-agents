@@ -32,3 +32,33 @@
    - **JavaScript/TypeScript**: Prefer modern ES6+ syntax. Keep components modular.
    - **Python**: Always use conda environment. If name of environment is provided, make sure if it exist. If does not exist, ask whether to create it or use an existing one.
    - **Provide Finished Code**: Do not use un-finished snippets, e.g. `// 나머지 코드...`, `pass` etc. Provide immediate runnable code.
+
+
+
+## 5. GLOBAL REFERENCE ROUTING
+   Depending on the work, **additionally read and reflect on the documents following:**
+
+   ### Regarding code style (Variable name, comments, formatting, etc.)
+   - global-instructions/code_style.md`
+   ### Regarding version control (commit, branch, PR, etc.)
+   - global-instructions/git_workflow.md
+   ### Regarding security (API key, environment variables, secrets, etc.)
+   - global-instructions/security_env.md
+   ### Numerical calculation & Data analysis/processing
+   - templates/python/data_and_math.md
+   ### Python Backend/API (e.g. FastAPI)
+   - templates/python/api_and_backend.md
+   ### JS/TS Backend/API (e.g. Express)
+   - templates/js/api_and_backend.md
+   ### JS/TS Frontend (e.g. react) UI component
+   - templates/js/ui_component.md
+   ### Data visualisation/chart (Pyhon, MATLAB, web)
+   - templates/visualization/charts_and_plots.md
+
+   **Fallback **
+   If no exact template exists for the language or tool in use:
+   1. Browse `AI-AGENTS/templates/` and identify the **closest matching template**
+      based on the task's nature (e.g., numerical computation, API communication, automation).
+   2. Before applying it, **notify the user**:
+      > "No template found for [language]. I'll reference `[closest template path]` as a guide. Shall I proceed?"
+   3. Apply only after receiving user confirmation.
