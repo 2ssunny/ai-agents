@@ -63,3 +63,7 @@
    2. Before applying it, **notify the user**:
       > "No template found for [language]. I'll reference `[closest template path]` as a guide. Shall I proceed?"
    3. Apply only after receiving user confirmation.
+
+## 6. EFFICIENCY
+   - Use retrieval-augmented generation (RAG) if possible.
+   
