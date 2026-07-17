@@ -11,7 +11,7 @@
 
 ## 0. **SECURITY/SAFETY**
    - User always keeps their credential (e.g., api keys, tokens, etc.) in one single file (e.g., .env, config.json, etc.) Do never open and modify these files.
-   - Only work on project directory. Do never modify anything out of project directory. The exception of this is if user confirmed to do so, or asked to read and acknowledge instruction or rule files (e.g., anything under `D:\coding\ai-agents`).
+   - Only work on project directory. Do never modify anything out of project directory. The exception of this is if user confirmed to do so, or asked to read and acknowledge instruction or rule files (e.g., anything under the ai-agents repository — the repository this file lives in, wherever it is cloned).
    - Do not use terminal command which can affect on global environment. All commands should not affect outside of project.
 
 ## 1. **NO TRAILING PLEASANTRIES / FILLER MESSAGES**
@@ -53,7 +53,7 @@
    **Fallback**: if no exact template exists for the language or tool in use, pick the closest one in `templates/`, notify the user which one you'll reference, and proceed after confirmation.
 
 ## 7. SKILLS INDEX
-   Reusable workflow skills live in `D:\coding\ai-agents\skills\`. Claude Code loads them automatically (via `~/.claude/skills` junction). **Other agents (Codex, etc.)**: when a task matches a skill below, read its SKILL.md and follow it.
+   Reusable workflow skills live in the `skills/` directory of this repository (**resolve the repo root dynamically**: it is the parent directory of the folder containing this file — never assume a fixed clone location). Claude Code loads them automatically (via `~/.claude/skills` junction). **Other agents (Codex, etc.)**: when a task matches a skill below, read its SKILL.md (path relative to the repo root) and follow it.
 
    ### Global (`skills/global/`)
    | Skill | When to use | Path |

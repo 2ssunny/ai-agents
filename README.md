@@ -33,13 +33,25 @@ ai-agents/
 
 내용 복사 없이 포인터만 연결한다. 원본 수정은 모든 에이전트에 즉시 반영된다.
 
-### Claude Code (설정 완료)
+> **경로 원칙**: 이 저장소는 어디에 clone해도 된다. 저장소 안의 문서·스킬에는 절대경로를 쓰지 않는다 — 절대경로는 각 머신의 어댑터(아래 정션과 포인터 파일)에만 존재한다. 아래에서 `<ai-agents-root>`는 자신의 clone 위치로 치환.
+
+### Claude Code
 
 | 연결 | 방법 |
 |------|------|
-| 전역 규칙 자동 로드 | `~/.claude/CLAUDE.md`에 3줄 포인터 → `global_rule.md` |
-| 전역 스킬 | 정션: `~/.claude/skills` → `skills/global` |
-| 프로젝트 특화 스킬 | 정션: `<프로젝트>/.claude/skills` → `skills/projects/<프로젝트>` |
+| 전역 규칙 자동 로드 | `~/.claude/CLAUDE.md`에 3줄 포인터 → `<ai-agents-root>\global-instructions\global_rule.md` |
+| 전역 스킬 | 정션: `cmd /c mklink /J "%USERPROFILE%\.claude\skills" "<ai-agents-root>\skills\global"` |
+| 프로젝트 특화 스킬 | 정션: `<프로젝트>\.claude\skills` → `<ai-agents-root>\skills\projects\<프로젝트>` |
+
+`~/.claude/CLAUDE.md` 포인터 내용 (경로만 자신의 clone 위치로):
+
+```markdown
+# Global rules
+
+At the start of every session, read `<ai-agents-root>\global-instructions\global_rule.md`
+and comply with it for the whole session. It routes to code style, git workflow,
+security rules, and the skills index.
+```
 
 새 프로젝트에 특화 스킬을 연결하려면 그 프로젝트에서 `link-project-skills` 스킬을 실행하면 된다 (정션 생성 + .gitignore 처리 자동).
 
@@ -47,10 +59,10 @@ ai-agents/
 
 ### Codex
 
-`~/.codex/AGENTS.md`에 동일한 3줄 포인터를 넣는다:
+`~/.codex/AGENTS.md`에 동일한 3줄 포인터를 넣는다 (경로는 자신의 clone 위치로):
 
 ```markdown
-At the start of every session, read `D:\coding\ai-agents\global-instructions\global_rule.md`
+At the start of every session, read `<ai-agents-root>\global-instructions\global_rule.md`
 and comply with it. It routes to code style, git workflow, security rules, and the skills index.
 ```
 
