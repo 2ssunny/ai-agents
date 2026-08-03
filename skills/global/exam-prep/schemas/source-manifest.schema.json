@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "exam-prep source manifest",
+  "description": "Inventory of every input document. Fields that could not actually be determined must be null, never guessed. Files whose role is ambiguous stay in the unclassified class.",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "sources"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "root": {
+      "type": "string",
+      "description": "Source directory the inventory was taken from, relative to the project."
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_id", "filename", "source_class", "confidence"],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "pattern": "^SRC-[0-9]{3,}$",
+            "description": "Stable ID; must not change once assigned."
+          },
+          "filename": {
+            "type": "string",
+            "minLength": 1
+          },
+          "relative_path": {
+            "type": ["string", "null"]
+          },
+          "source_class": {
+            "type": "string",
+            "enum": [
+              "lecture_materials",
+              "tutorials",
+              "tutorial_solutions",
+              "textbooks",
+              "datasheets",
+              "formula_booklets",
+              "past_papers",
+              "official_solutions",
+              "mark_schemes",
+              "scope_guidance",
+              "reference_notes",
+              "unclassified"
+            ]
+          },
+          "page_count": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "year": {
+            "type": ["integer", "null"]
+          },
+          "title": {
+            "type": ["string", "null"]
+          },
+          "course_code": {
+            "type": ["string", "null"]
+          },
+          "contains_questions": {
+            "type": ["boolean", "null"]
+          },
+          "contains_solutions": {
+            "type": ["boolean", "null"]
+          },
+          "text_extractable": {
+            "type": ["boolean", "null"]
+          },
+          "appears_scanned": {
+            "type": ["boolean", "null"]
+          },
+          "handwriting_present": {
+            "type": ["boolean", "null"]
+          },
+          "visual_inspection_required": {
+            "type": ["boolean", "null"]
+          },
+          "ocr_required": {
+            "type": ["boolean", "null"]
+          },
+          "exam_relevance": {
+            "type": ["string", "null"],
+            "enum": ["high", "medium", "low", "unknown", null]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "notes": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "missing_sources": {
+      "type": "array",
+      "description": "Material the scope analysis expects but which was not supplied.",
+      "items": {
+        "type": "object",
+        "required": ["description", "impact"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "impact": {
+            "type": "string",
+            "enum": ["blocking", "degrades_coverage", "cosmetic"]
+          },
+          "affected_topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,107 @@
+# exam-prep profile: structures / solid mechanics
+#
+# Extends the generic-stem contract with the checks that catch this subject's
+# characteristic errors: a misread support condition, a second moment of area
+# taken about the wrong axis, and a stress quoted at the wrong fibre.
+
+profile_id: structures
+schema_version: 1
+display_name: Structures and Solid Mechanics
+subject_family: solid-mechanics
+description: >
+  Verification contract for structural analysis, stress analysis and mechanics of
+  materials coursework. Includes the generic STEM checks plus equilibrium,
+  compatibility and section-property checks.
+
+required_checks:
+  # --- inherited generic STEM contract -----------------------------------
+  - check_id: problem_statement_captured
+    title: Problem statement captured correctly
+  - check_id: assumptions_stated
+    title: Assumptions stated explicitly
+    description: >
+      Small deflections, linear elasticity, plane sections remaining plane, and
+      self-weight neglected are assumptions and must be listed.
+  - check_id: governing_equations_selected
+    title: Governing equations selected and justified
+  - check_id: symbolic_derivation_checked
+    title: Symbolic derivation checked
+  - check_id: numerical_recomputation
+    title: Numerical calculation independently repeated
+  - check_id: units_and_dimensions
+    title: Units and dimensions checked
+    description: Watch mm versus m in section properties — the error scales by 10^12 for I.
+  - check_id: sign_conventions
+    title: Sign conventions checked
+    description: Sagging-positive or hogging-positive stated once and held throughout.
+  - check_id: limiting_behaviour
+    title: Limiting behaviour or physical sense checked
+  - check_id: official_solution_compared
+    title: Official solution compared when available
+  - check_id: discrepancies_recorded
+    title: Discrepancies recorded
+
+  # --- structures specific ------------------------------------------------
+  - check_id: geometry_interpretation
+    title: Geometry interpreted correctly from the figure
+    description: Spans, offsets, and member orientations read from the drawing, not assumed.
+  - check_id: equilibrium
+    title: Equilibrium satisfied
+    description: Sum of forces and moments checked on the free body actually used.
+  - check_id: boundary_conditions
+    title: Boundary conditions applied correctly
+  - check_id: support_conditions
+    title: Support conditions identified correctly
+    description: Pinned, roller, fixed or spring — and the reaction components each implies.
+  - check_id: moment_axis_selection
+    title: Moment axis selected deliberately
+    description: The axis taken for moments is stated and is the one that isolates the unknown.
+  - check_id: second_moment_orientation
+    title: Second moment of area taken about the correct axis
+    description: >
+      Bending about the axis the load actually acts on, with parallel-axis terms
+      applied where the centroid is offset.
+  - check_id: stress_extreme_location
+    title: Stress extreme evaluated at the correct location
+    description: Correct fibre, correct section along the span, tension versus compression face.
+
+optional_checks:
+  - check_id: compatibility
+    title: Compatibility satisfied
+    description: Required for statically indeterminate problems.
+  - check_id: deflection_sign_convention
+    title: Deflection or rotation sign convention checked
+    description: Required whenever a displacement or slope is reported.
+  - check_id: buckling_effective_length
+    title: Buckling effective length appropriate to the end conditions
+  - check_id: yield_criterion_applied
+    title: Yield or failure criterion applied consistently
+  - check_id: alternative_method_agreement
+    title: Solved a second way and got the same answer
+
+formula_classes: [DS, MEM, DERIVE]
+
+exam_trigger_vocabulary:
+  - derive
+  - show that
+  - draw the shear force diagram
+  - draw the bending moment diagram
+  - determine the reactions
+  - calculate the maximum stress
+  - calculate the deflection
+  - state the assumptions
+  - sketch the deflected shape
+  - comment on the result
+
+page_targets:
+  minimum_pages: 40
+  preferred_min_pages: 70
+  preferred_max_pages: 130
+  maximum_advisory_pages: 220
+  allow_out_of_range_with_explanation: true
+
+notes: >
+  Statically indeterminate problems must promote `compatibility` into the record.
+  Any answer reporting a deflection or rotation must promote
+  `deflection_sign_convention`. Leaving them out when they apply is the failure
+  mode this profile exists to prevent.
