@@ -3,3 +3,17 @@ ai_agents_blueprint.md
 # Projects Skiils
 skills/projects/scholar-orient/
 skills/projects/ssunny-quant/
+
+# Python (skill scripts and tests)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Secrets — see global-instructions/security_env.md
+.env
+*.env.*
+config.json
+credentials.json
+*.pem
+*.key
+*.token
