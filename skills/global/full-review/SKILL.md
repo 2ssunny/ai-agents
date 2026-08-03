@@ -26,6 +26,8 @@ Read the full diff. Priority order:
 2. **Correctness** — logic errors, unhandled failure paths, race conditions.
 3. **Conventions** — per `global-instructions/code_style.md` (only flag, don't bikeshed).
 
+**exam-prep projects** have their own review surface. Run the skill's checks rather than reading the documents by eye: `final_audit.py` (completion gates), `verify_evidence.py` (settled records with missing checks, missing evidence, or hashes invalidated by a later edit), `check_parity.py` (canonical ID divergence between the two editions), `check_english_only.py` (Hangul in the English edition), `pdf_preflight.py` (page counts that don't match what was reported). Also check source coverage: every canonical chapter should cite at least one inventoried `source_id`, and anything left `unclassified` in the manifest is unresolved work, not a finished decision.
+
 ## Step 3: Fix
 
 Apply fixes for confirmed issues directly (small/clear fixes immediately; larger reworks: list them and confirm scope first). Commit per push-pr rules only if the user has authorized committing.

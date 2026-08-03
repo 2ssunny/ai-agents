@@ -1,0 +1,115 @@
+# exam-prep profile: thermodynamics / thermofluids
+#
+# Extends the generic-stem contract with the checks that catch the mistakes this
+# subject actually produces: a mis-drawn control volume, a process relation
+# applied to the wrong path, and static values used where stagnation values belong.
+
+profile_id: thermodynamics
+schema_version: 1
+display_name: Thermodynamics and Thermofluids
+subject_family: thermo-fluids
+description: >
+  Verification contract for thermodynamics, applied thermodynamics, gas dynamics
+  and heat transfer coursework. Includes the generic STEM checks plus control
+  volume, balance-equation and state-versus-path checks.
+
+required_checks:
+  # --- inherited generic STEM contract -----------------------------------
+  - check_id: problem_statement_captured
+    title: Problem statement captured correctly
+  - check_id: assumptions_stated
+    title: Assumptions stated explicitly
+    description: >
+      Ideal gas, constant specific heats, reversibility, adiabatic walls and
+      negligible kinetic/potential energy are all assumptions and must be listed.
+  - check_id: governing_equations_selected
+    title: Governing equations selected and justified
+  - check_id: symbolic_derivation_checked
+    title: Symbolic derivation checked
+  - check_id: numerical_recomputation
+    title: Numerical calculation independently repeated
+  - check_id: units_and_dimensions
+    title: Units and dimensions checked
+    description: >
+      Watch absolute versus gauge pressure, kelvin versus celsius, and molar
+      versus specific quantities.
+  - check_id: sign_conventions
+    title: Sign conventions checked
+    description: Work and heat sign convention stated and used consistently.
+  - check_id: limiting_behaviour
+    title: Limiting behaviour or physical sense checked
+  - check_id: official_solution_compared
+    title: Official solution compared when available
+  - check_id: discrepancies_recorded
+    title: Discrepancies recorded
+
+  # --- thermodynamics specific -------------------------------------------
+  - check_id: system_boundary
+    title: System or control-volume boundary defined
+    description: What is inside, what crosses the boundary, and where it crosses.
+  - check_id: steady_or_transient
+    title: Steady or transient assumption justified
+  - check_id: mass_balance
+    title: Mass balance closed
+  - check_id: energy_balance
+    title: Energy balance closed
+    description: First law written for the chosen boundary, with every term accounted for.
+  - check_id: process_relation
+    title: Process relation appropriate to the path
+    description: >
+      Polytropic, isentropic or isothermal relations only where the stated path
+      justifies them.
+  - check_id: state_vs_path
+    title: State versus path quantities distinguished
+    description: >
+      Properties evaluated at states; work and heat evaluated along paths. Mark
+      not_applicable only when no path integral appears.
+  - check_id: dimensional_consistency
+    title: Dimensional consistency of the final relation
+
+optional_checks:
+  - check_id: entropy_generation
+    title: Entropy generation non-negative and consistent
+    description: Required whenever the second law or an isentropic efficiency appears.
+  - check_id: stagnation_vs_static
+    title: Stagnation and static states distinguished
+    description: Required for compressible flow and turbomachinery problems.
+  - check_id: choking_condition
+    title: Choking condition tested
+    description: Required for nozzle, orifice and duct-flow problems.
+  - check_id: heat_transfer_boundary_condition
+    title: Heat-transfer boundary condition identified
+    description: >
+      Fixed temperature, fixed flux, convective or radiative — required for
+      conduction and heat-exchanger problems.
+  - check_id: property_table_interpolation
+    title: Property table interpolation checked
+  - check_id: alternative_method_agreement
+    title: Solved a second way and got the same answer
+
+formula_classes: [DS, MEM, DERIVE]
+
+exam_trigger_vocabulary:
+  - derive
+  - show that
+  - state the assumptions
+  - sketch the T-s diagram
+  - sketch the p-v diagram
+  - calculate the work
+  - calculate the heat transfer
+  - determine the efficiency
+  - determine the entropy generation
+  - comment on the result
+
+page_targets:
+  minimum_pages: 40
+  preferred_min_pages: 70
+  preferred_max_pages: 130
+  maximum_advisory_pages: 220
+  allow_out_of_range_with_explanation: true
+
+notes: >
+  Optional checks are not decorative: when a problem involves compressible flow,
+  a second-law argument or a heat-transfer boundary, promote the matching optional
+  check into the record and make it pass. Recording it as absent when it applies
+  is the failure mode this profile exists to prevent.

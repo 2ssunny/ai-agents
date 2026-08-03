@@ -1,0 +1,83 @@
+# exam-prep project configuration — copy into the study project and edit.
+#
+# Every path is relative to the study project root. Do not put absolute paths
+# here: the project must work on another machine, and this file is committed
+# alongside the study material.
+
+schema_version: 1
+
+project:
+  # Used in reports and in progress.json. Keep it stable across runs.
+  id: mech2001-thermo-2026
+  display_name: MECH2001 Thermodynamics — 2026 revision pack
+  course_code: MECH2001
+  exam_date: 2026-05-18          # optional; informs depth vs. time advice
+
+# Which subject profile defines the verification contract.
+# Bundled: generic-stem, thermodynamics, structures.
+# A project may also point at its own file: ./exam-prep-profile.yaml
+profile: thermodynamics
+
+paths:
+  sources: sources                       # input material
+  output: output                         # rendered DOCX/PDF
+  work_dir: .agent-work/exam-prep        # checkpoints and canonical content
+
+approval:
+  # false (default): Phase 2 stops and waits for the user.
+  # true: proceed without stopping — only when the user has already approved the
+  # plan. The approval is still recorded in progress.json either way; an
+  # unrecorded approval fails the final audit.
+  continue_without_approval: false
+  # Filled in when continuing on a previously given approval.
+  approved_by: null
+  approved_at: null
+  approval_note: null
+
+outputs:
+  # Produce only what is listed. The audit checks that every declared artefact
+  # actually exists, so do not list something you will not generate.
+  - notes_bilingual        # 1. Korean explanation, English terms and exam wording
+  - notes_english          # 2. fully English revision notes
+  - solutions_bilingual    # 3. Korean-English worked-solutions book
+  - solutions_english      # 4. fully English worked-solutions book
+  - audit_report           # 5. calculation and discrepancy audit
+  - topic_matrix           # 6. past-paper topic matrix
+  - pdf_qa_report          # 7. final PDF QA report
+
+formats:
+  document: pdf            # pdf | docx | both
+  reports: md              # md | pdf
+
+# Page guidance. Overrides the profile's page_targets when set.
+# These are planning aids, never completion criteria, and padding to reach them
+# is prohibited — see references/document-style.md.
+page_targets:
+  minimum_pages: 40
+  preferred_min_pages: 70
+  preferred_max_pages: 130
+  maximum_advisory_pages: 220
+  allow_out_of_range_with_explanation: true
+
+verification:
+  # Run per-problem verification hooks during Phase 4. Off by default because it
+  # executes code from the working directory.
+  run_hooks: false
+  # Promote these optional profile checks to required for this project. Use when
+  # the syllabus makes them universally relevant.
+  additional_required_checks:
+    - entropy_generation
+  # Fail the audit unless a person has recorded a visual review of the output.
+  require_human_visual_review: true
+
+qa:
+  # Render page images and a contact sheet during Phase 7 (needs PyMuPDF).
+  render_pages: true
+  # Cap rendering on very long documents; null renders every page.
+  max_rendered_pages: null
+
+language:
+  bilingual_primary: ko          # explanation language of the bilingual edition
+  keep_technical_terms_in: en
+  # Gloss a Korean term beside its English term on first use in each chapter.
+  gloss_on_first_use: true

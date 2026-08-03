@@ -1,0 +1,93 @@
+# exam-prep profile: generic STEM
+#
+# Baseline used when no subject-specific profile fits. The required_checks list
+# is the contract for the VERIFIED status: every check below must appear in a
+# solution record with result `pass`, or `not_applicable` accompanied by a note
+# explaining why. A missing check counts as not performed, never as passing.
+
+profile_id: generic-stem
+schema_version: 1
+display_name: Generic STEM
+subject_family: generic-stem
+description: >
+  Subject-neutral verification contract for mathematics, physics, materials and
+  other quantitative courses. Use it directly when the subject has no dedicated
+  profile, or copy it as the starting point for a new one.
+
+required_checks:
+  - check_id: problem_statement_captured
+    title: Problem statement captured correctly
+    description: >
+      The restated question matches the original wording, given data, and what is
+      actually being asked. Transcription slips here invalidate everything after.
+  - check_id: assumptions_stated
+    title: Assumptions stated explicitly
+    description: >
+      Every assumption used in the solution is written down, including ones the
+      official solution left implicit.
+  - check_id: governing_equations_selected
+    title: Governing equations selected and justified
+    description: Why these relations apply to this system, not merely which ones were used.
+  - check_id: symbolic_derivation_checked
+    title: Symbolic derivation checked
+    description: >
+      The algebra from governing equations to the final symbolic expression was
+      re-derived, not copied.
+  - check_id: numerical_recomputation
+    title: Numerical calculation independently repeated
+    description: >
+      The arithmetic was redone from the symbolic result and the given data,
+      without reading the official answer first.
+  - check_id: units_and_dimensions
+    title: Units and dimensions checked
+    description: The final expression is dimensionally homogeneous and the units resolve.
+  - check_id: sign_conventions
+    title: Sign conventions checked
+    description: The convention is stated and applied consistently through the whole solution.
+  - check_id: limiting_behaviour
+    title: Limiting behaviour or physical sense checked
+    description: >
+      Magnitude, direction and limiting cases are physically plausible for the
+      stated system.
+  - check_id: official_solution_compared
+    title: Official solution compared when available
+    description: >
+      Mark `not_applicable` with a note when no official solution exists. An
+      official solution is a comparison source, not ground truth.
+  - check_id: discrepancies_recorded
+    title: Discrepancies recorded
+    description: >
+      Any disagreement with the official solution is written to the discrepancy
+      log with the reasoning for the position taken.
+
+optional_checks:
+  - check_id: alternative_method_agreement
+    title: Solved a second way and got the same answer
+  - check_id: significant_figures
+    title: Significant figures appropriate to the given data
+
+formula_classes: [DS, MEM, DERIVE]
+
+exam_trigger_vocabulary:
+  - derive
+  - show that
+  - state
+  - explain
+  - sketch
+  - calculate
+  - determine
+  - estimate
+  - comment on
+  - discuss
+
+page_targets:
+  minimum_pages: 30
+  preferred_min_pages: 60
+  preferred_max_pages: 120
+  maximum_advisory_pages: 200
+  allow_out_of_range_with_explanation: true
+
+notes: >
+  Page targets are guidance for depth planning only. They are never evidence of
+  completion, and padding a document to reach them is prohibited. Falling outside
+  the range is acceptable when the reason is stated in the final report.

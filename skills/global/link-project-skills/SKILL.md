@@ -1,54 +1,101 @@
 ---
 name: link-project-skills
-description: Wire a project to its project-specific skills in the central ai-agents repo by creating a Windows junction from <project>/.claude/skills to <ai-agents-root>/skills/projects/<project>. Use when the user says "이 프로젝트에 스킬 연결해줘", "프로젝트 스킬 셋업", "link skills", or when starting work in a project that should have project-scoped skills but has no .claude/skills yet.
+description: Wire a project to skills held centrally in the ai-agents repo by creating per-skill links under <project>/.agents/skills (Codex, Antigravity) and <project>/.claude/skills (Claude Code). Use when the user says "이 프로젝트에 스킬 연결해줘", "프로젝트 스킬 셋업", "link skills", "exam-prep 연결해줘", or when starting work in a project that should have project-scoped or global skills available but has none wired yet.
 ---
 
 # Link Project Skills
 
-Project-specific skills live centrally in the ai-agents repository under `skills/projects/<project>/` so every agent shares one source of truth. Claude Code only exposes them per-project via `<project>\.claude\skills`, so each project needs a junction. This skill automates that wiring.
+Skills live in exactly one place — this repository — and each project gets thin
+links to them. An edit here reaches every agent immediately, and no skill content
+is ever duplicated per platform.
 
-## Step 0: Locate the ai-agents repository root
+Two directories per project, both pointing at the same canonical folder:
 
-The repo can be cloned anywhere (it differs per machine/teammate), so **never assume a fixed path** — resolve it dynamically:
-
-1. Read the global-skills junction target — it points inside the repo:
-
-   ```powershell
-   (Get-Item "$HOME\.claude\skills").Target
-   ```
-
-   The target is `<ai-agents-root>\skills\global`, so the repo root is **two levels up** from it.
-2. If that junction doesn't exist, ask the user where their ai-agents repo is cloned.
-3. Sanity-check the resolved root: it must contain `global-instructions\global_rule.md`.
-
-Use the resolved `<ai-agents-root>` everywhere below.
-
-## Procedure
-
-1. **Detect the project name** from the current working directory's folder name (e.g. `...\scholar-orient` → `scholar-orient`). Confirm with the user if the cwd looks like a subdirectory rather than a project root.
-
-2. **Ensure the central folder exists**: create `<ai-agents-root>\skills\projects\<project>\` if missing. An empty folder is fine — it's the future home for this project's skills.
-
-3. **Create the junction** (junctions don't need admin rights, unlike symlinks):
-
-   ```
-   cmd /c mklink /J "<project-root>\.claude\skills" "<ai-agents-root>\skills\projects\<project>"
-   ```
-
-   On macOS/Linux use a symlink instead: `ln -s "<ai-agents-root>/skills/projects/<project>" "<project-root>/.claude/skills"` (and resolve the repo root via `readlink ~/.claude/skills`).
-
-   - Create `<project-root>\.claude\` first if it doesn't exist.
-   - If `.claude\skills` already exists as a **real folder with content**: don't delete it silently. Ask whether to move its contents into the central folder (usually yes), then move, remove the folder, and create the junction.
-   - If it's already a junction pointing at the right target, report "already wired" and stop.
-
-4. **Gitignore**: ensure the project's `.gitignore` contains `.claude/skills` (the junction target is machine-specific; committing it breaks other machines). Append if missing.
-
-5. **Tell the user**: skills under the central folder now appear in this project's skill list **starting from the next session** (junction creation isn't picked up mid-session). After that, edits in ai-agents are reflected immediately — no re-linking needed.
-
-## Verification
-
-```powershell
-Get-Item "<project-root>\.claude\skills" | Select-Object LinkType, Target
+```
+<project>/.agents/skills/<skill>    → consumed by Codex and Antigravity
+<project>/.claude/skills/<skill>    → consumed by Claude Code
 ```
 
-LinkType should read `Junction` with the correct target.
+## Use the script
+
+```bash
+python3 <ai-agents>/skills/global/link-project-skills/scripts/link_project_skills.py \
+    --project . --skill exam-prep --gitignore
+```
+
+It resolves the repository from its own location, so there is no path to
+configure and nothing machine-specific to remember. Run `--help` for the full
+option list.
+
+| Option | Effect |
+|--------|--------|
+| `--project PATH` | Project root (default: current directory) |
+| `--skill NAME` | Global skill to link; repeatable |
+| `--project-skills` | Also link everything under `skills/projects/<project name>/` |
+| `--agents both\|claude\|codex` | Which agent directories to populate |
+| `--gitignore` | Append the link directories to the project's `.gitignore` |
+| `--dry-run` | Show every action without performing it |
+| `--migrate` | Convert the legacy whole-directory junction (see below) |
+| `--json` | Machine-readable report |
+
+Always `--dry-run` first when the project already has a `.claude/` or `.agents/`
+directory.
+
+## What it guarantees
+
+- **Idempotent** — re-running reports `skipped` for links already correct.
+- **Non-destructive** — a real directory or file in the way is reported as
+  `rejected` and left completely alone. You move it, not the script.
+- **Link-only removal** — replacing a stale link removes the link, never what it
+  points at. On Windows that means `rmdir` on the junction, which is why deleting
+  these by hand with `rm -rf` is dangerous and this script is not.
+- **Explicit** — every path is reported as `linked`, `skipped`, `replaced` or
+  `rejected`, and a non-zero exit means something needs a human.
+
+Windows gets directory junctions (`mklink /J`, no administrator rights needed);
+POSIX gets symbolic links. The script tries a real symlink first on Windows and
+falls back to a junction, so it works with or without Developer Mode.
+
+## Legacy layout
+
+Earlier wiring made `<project>/.claude/skills` **itself** a junction to
+`skills/projects/<project>`. Per-skill links cannot live inside that — creating
+one would write into this repository through the junction.
+
+The script detects it, refuses to write into it, and says so. Nothing is changed
+until you pass `--migrate`, which removes the junction (link only; the central
+content is untouched), creates a real directory in its place, and links each
+skill individually. Projects wired the old way keep working until you migrate
+them; only per-skill linking requires the change.
+
+Wiring the Codex side (`.agents/skills`) still proceeds normally even while the
+legacy `.claude/skills` layout is in place.
+
+## After linking
+
+Claude Code picks up new skills **from the next session** — link creation is not
+detected mid-session. After that, edits in ai-agents are reflected immediately
+with no re-linking.
+
+Verify:
+
+```bash
+ls -l <project>/.claude/skills <project>/.agents/skills                    # POSIX
+Get-Item "<project>\.claude\skills\*" | Select-Object LinkType, Target     # Windows
+```
+
+## Global skills for Claude Code
+
+Claude Code also reads `~/.claude/skills`, junctioned once to
+`<ai-agents>/skills/global`, so every global skill is already available in every
+project. A per-project link is therefore redundant for Claude Code and useful
+mainly for making a project's skill set explicit — the directory that genuinely
+needs wiring is `.agents/skills`, which Codex and Antigravity read.
+
+## Adding a new skill
+
+- Global: create `skills/global/<name>/SKILL.md`, add a row to the SKILLS INDEX
+  in `global-instructions/global_rule.md`, then link it into projects that need
+  it.
+- Project-specific: create `skills/projects/<project>/<name>/SKILL.md` and re-run
+  with `--project-skills`.

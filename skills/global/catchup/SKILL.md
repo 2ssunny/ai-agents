@@ -22,6 +22,8 @@ Check `log_summary/{project}_dev_log.md` and `log_summary/{project}_summary.md` 
 
 If no log exists, rely on git evidence and recent file modification times (`git diff HEAD`, recently modified files).
 
+**exam-prep projects**: if `.agent-work/exam-prep/` exists, the real state is there, not in git. Read `progress.json` (phase, counts, blocking items, approval) and `final-audit.json` (which completion gates pass). Run `python3 <ai-agents>/skills/global/exam-prep/scripts/final_audit.py --work-dir .agent-work/exam-prep` for the current picture — it recomputes from the files rather than trusting the checkpoint. **A rendered PDF in the output directory is not evidence of completion**; it is often a draft produced before verification started. Resume from the recorded phase.
+
 ## Step 3: Identify the resume point
 
 Synthesize: what was the last completed step, and what is the next incomplete step? Look for:

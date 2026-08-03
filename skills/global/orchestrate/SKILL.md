@@ -30,6 +30,7 @@ When the user's message contains a question **and** work to do: answer the quest
 - Split by independent streams (W1/W2/… pattern), each on its **own branch** so merges stay clean.
 - Give each subagent a self-contained prompt: file paths, constraints, definition of done, and the relevant global rules (author flag, no push, conventions). Subagents don't inherit your conversation.
 - Chain dependent work rather than parallelizing it — parallel agents editing the same files create conflicts that cost more than the parallelism saves.
+- **exam-prep projects** split cleanly by phase: source analysis, problem solving, verification, editing, rendering, auditing. Give each subagent its own chapters or problem range so they don't collide. But **only the final auditor decides completion** — a solving subagent reporting "done" means its problems have records, not that the project is finished. Run `scripts/final_audit.py` yourself before telling the user anything is complete.
 
 ## Monitoring and recovery
 
