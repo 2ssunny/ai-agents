@@ -64,7 +64,10 @@
    | `full-review` | Full code review + security check + Codex cross-review | `skills/global/full-review/SKILL.md` |
    | `orchestrate` | Subagent delegation & model tiering for big/parallel work | `skills/global/orchestrate/SKILL.md` |
    | `server-runbook` | Server pair-debugging protocol + infra references | `skills/global/server-runbook/SKILL.md` |
-   | `link-project-skills` | Wire a project's `.claude/skills` junction | `skills/global/link-project-skills/SKILL.md` |
+   | `link-project-skills` | Wire a project's `.agents/skills` + `.claude/skills` links | `skills/global/link-project-skills/SKILL.md` |
+   | `exam-prep` | Source-grounded exam revision notes & verified worked solutions | `skills/global/exam-prep/SKILL.md` |
+
+   **`exam-prep` routing**: use it when a task combines study material (lecture notes, textbooks, tutorials, data sheets, formula booklets, past papers, official solutions, mark schemes) with a study deliverable (consolidated revision notes, exam-focused study packs, past-paper analysis, bilingual academic notes, independently verified worked solutions, DOCX/PDF study-document generation). Critical rules that apply even before the SKILL.md is read: **stop for user approval after the proposed outline**; **never claim calculations are verified because a document was generated**; **never state a page count you have not read from the PDF**; **never claim visual inspection without evidence**. The workflow itself lives in the skill — don't duplicate it here.
 
    ### Project-specific (`skills/projects/<project>/`)
    | Skill | Project | Purpose |
