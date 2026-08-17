@@ -15,6 +15,7 @@ ai-agents/
 │   ├── global/               ← 전역 스킬 (모든 프로젝트에서 사용, 저장소에 포함)
 │   │   ├── catchup/              작업 재개 ("이어서 진행해")
 │   │   ├── push-pr/              승인된 push/PR 워크플로우
+│   │   ├── release/              버전 확인 → CI 게이트 → 태그·릴리스 (+ references/)
 │   │   ├── sync-docs/            문서·노션 동기화
 │   │   ├── full-review/          전체 코드리뷰 + codex 교차 리뷰
 │   │   ├── orchestrate/          서브에이전트·모델 티어링 정책
@@ -24,8 +25,11 @@ ai-agents/
 ├── templates/                ← 작업 유형별 구현 가이드 (필요 시 추가)
 ├── human-rules/
 │   └── general_rule.md       ← 인간 검토용 체크리스트
+├── agent-config.example.json ← 개인 설정 템플릿 (복사해서 쓰는 원본)
 └── README.md
 ```
+
+`agent-config.json`(gitignore)에는 커밋 서명, 브랜치 규칙, 답변 스타일 같은 **개인 설정**이 들어간다. 저장소 자체에는 특정 개인의 정체성이 남지 않고, clone한 사람이 자기 값으로 채워 쓰면 된다. 시크릿은 넣지 않는다 — 여긴 에이전트가 읽어도 되는 파일이고, `.env`/`config.json` 같은 시크릿 파일은 여전히 열람 금지다.
 
 `skills/projects/`는 개인 프로젝트에 종속된 스킬을 두는 곳으로, **gitignore 대상이라 저장소에 포함되지 않는다.** 각자 자기 프로젝트용 스킬을 로컬에서 만들어 쓰면 된다.
 
@@ -35,9 +39,17 @@ ai-agents/
 
 > **경로 원칙**: 이 저장소는 어디에 clone해도 된다. 저장소 안의 문서·스킬에는 절대경로를 쓰지 않는다 — 절대경로는 각 머신의 어댑터(아래 정션과 포인터 파일)에만 존재한다. 아래에서 `<ai-agents-root>`는 자신의 clone 위치로 치환.
 
+### 0. 개인 설정 파일 만들기 (에이전트 공통)
+
+```bash
+cp agent-config.example.json agent-config.json
+```
+
+`commit.author`를 자기 것으로 바꾼다. 이 값이 커밋 `--author`에 쓰이므로, 안 채우면 에이전트가 커밋 전에 물어본다. 브랜치 전략(`prBaseBranch`, `protectedBranches`)과 답변 언어·말투(`communication`)도 여기서 조정한다. 이 파일은 gitignore라 저장소에 올라가지 않는다.
+
 ### Claude Code
 
-**1. 전역 스킬 연결** — 정션 하나로 전역 스킬 7개가 모든 프로젝트에서 활성화된다:
+**1. 전역 스킬 연결** — 정션 하나로 전역 스킬 8개가 모든 프로젝트에서 활성화된다:
 
 ```
 cmd /c mklink /J "%USERPROFILE%\.claude\skills" "<ai-agents-root>\skills\global"
@@ -107,7 +119,20 @@ git 상태(`status`/`log`/브랜치/열린 PR)와 `log_summary/{project}_dev_log
 | **트리거** | "push 진행해", "PR 열어", "conflict resolve해", "머지 준비해" |
 | **호출** | `/push-pr` |
 
-push가 명시적으로 허가됐을 때의 표준 절차: Angular convention 커밋 + `--author="ssunny-agent <ai-agent@ssunny.me>"` 서명(co-author 금지), **PR base는 develop**(main 직접 push 금지 — main 머지는 사용자가 GitHub에서), PR 생성 후 머지 순서 제시, conflict resolve 절차, CI 확인까지. 이 스킬 없이는 push 금지가 기본 규칙.
+push가 명시적으로 허가됐을 때의 표준 절차: Angular convention 커밋 + `agent-config.json`의 `commit.author` 서명(co-author 트레일러는 설정에 따름), **PR base는 `prBaseBranch`**(보호 브랜치 직접 push 금지 — 머지는 사용자가 GitHub에서), PR 생성 후 머지 순서 제시, conflict resolve 절차, CI 확인까지. 이 스킬 없이는 push 금지가 기본 규칙.
+
+### `release` — 버전 태그 & GitHub 릴리스
+
+| | |
+|---|---|
+| **트리거** | "릴리스 하자", "버전 올려", "태그 따줘", "릴리스 셋업해줘", 릴리스 워크플로우 실패 |
+| **호출** | `/release` |
+
+릴리스는 공개되면 되돌리기 번거롭고, 테스트 안 된 커밋에 태그가 박히면 그게 제일 곤란하다. 그래서 두 개의 게이트가 강제된다: **버전 레벨은 사용자가 고르고**, **태그 대상 커밋에서 CI가 통과해야** 진행된다.
+
+흐름: ① 최신 릴리스·태그·매니페스트 버전을 모두 읽어 현재 버전 확정(불일치 시 임의 선택 대신 보고) ② 마지막 릴리스 이후 커밋을 요약해 major/minor/patch별 실제 버전 번호를 제시하고 **사용자 확인 대기** ③ 워킹트리·브랜치·동기화 상태 점검 후 대상 SHA 고정 ④ **해당 커밋의 CI 확인** — 실행 중이면 대기, 실패면 중단, 이력이 없으면(`pull_request` 트리거만 있는 CI에서 흔함) 연결된 PR의 체크를 역추적해 "무엇이 검증됐는지" 정확히 보고 ⑤ 매니페스트 버전 커밋 ⑥ annotated 태그 + `gh release create --generate-notes` ⑦ 태그가 트리거한 릴리스 워크플로우까지 지켜보고 결과 보고.
+
+릴리스 설정이 아예 없는 저장소면 `references/setup.md`의 부트스트랩 플로우로 넘어간다 — 최초 버전 결정, 태그 트리거 릴리스 워크플로우, `.github/release.yml` 노트 분류, CI가 릴리스 커밋을 실제로 커버하는지 점검까지.
 
 ### `sync-docs` — 문서/노션 동기화
 
