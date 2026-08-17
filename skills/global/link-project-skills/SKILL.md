@@ -1,54 +1,74 @@
 ---
 name: link-project-skills
-description: Wire a project to its project-specific skills in the central ai-agents repo by creating a Windows junction from <project>/.claude/skills to <ai-agents-root>/skills/projects/<project>. Use when the user says "이 프로젝트에 스킬 연결해줘", "프로젝트 스킬 셋업", "link skills", or when starting work in a project that should have project-scoped skills but has no .claude/skills yet.
+description: Connect a project to its centralized project-specific skills by creating safe Claude and/or Codex directory junctions. Use when the user asks to link skills, set up project skills, or repair project skill discovery.
 ---
 
 # Link Project Skills
 
-Project-specific skills live centrally in the ai-agents repository under `skills/projects/<project>/` so every agent shares one source of truth. Claude Code only exposes them per-project via `<project>\.claude\skills`, so each project needs a junction. This skill automates that wiring.
+Project-specific skills live under `skills/projects/{project}` in the central
+`ai-agents` repository. Expose that directory through host-specific junctions:
 
-## Step 0: Locate the ai-agents repository root
+- Claude: `{project-root}/.claude/skills`
+- Codex: `{project-root}/.agents/skills`
 
-The repo can be cloned anywhere (it differs per machine/teammate), so **never assume a fixed path** — resolve it dynamically:
+## 1. Resolve the central repository
 
-1. Read the global-skills junction target — it points inside the repo:
+Do not assume a fixed clone path.
 
-   ```powershell
-   (Get-Item "$HOME\.claude\skills").Target
-   ```
+1. Inspect `~/.agents/skills` and `~/.claude/skills` for an existing junction.
+2. A valid target ends in `skills/global`; resolve the repository root two
+   levels above that target.
+3. Verify that `global-instructions/global_rule.md` exists under the resolved
+   root.
+4. If neither junction resolves a valid root, ask the user for the repository
+   location.
 
-   The target is `<ai-agents-root>\skills\global`, so the repo root is **two levels up** from it.
-2. If that junction doesn't exist, ask the user where their ai-agents repo is cloned.
-3. Sanity-check the resolved root: it must contain `global-instructions\global_rule.md`.
+## 2. Resolve project and hosts
 
-Use the resolved `<ai-agents-root>` everywhere below.
+- Use the Git root as `{project-root}` when available.
+- Derive `{project}` from the project root folder name, then check whether a
+  matching central project folder already exists.
+- Link the host or hosts requested by the user. When the request says only
+  "link project skills", link both Claude and Codex if both are installed.
 
-## Procedure
+## 3. Prepare the target
 
-1. **Detect the project name** from the current working directory's folder name (e.g. `...\scholar-orient` → `scholar-orient`). Confirm with the user if the cwd looks like a subdirectory rather than a project root.
+Create `skills/projects/{project}` when it does not exist. Do not populate it
+with placeholder files.
 
-2. **Ensure the central folder exists**: create `<ai-agents-root>\skills\projects\<project>\` if missing. An empty folder is fine — it's the future home for this project's skills.
+Before creating a junction:
 
-3. **Create the junction** (junctions don't need admin rights, unlike symlinks):
+- If the destination is already a junction to the correct target, leave it.
+- If it is a junction to a different target, report the mismatch and ask
+  before replacing it.
+- If it is a real directory with content, do not delete or move it without the
+  user's explicit approval.
 
-   ```
-   cmd /c mklink /J "<project-root>\.claude\skills" "<ai-agents-root>\skills\projects\<project>"
-   ```
+## 4. Create Windows junctions
 
-   On macOS/Linux use a symlink instead: `ln -s "<ai-agents-root>/skills/projects/<project>" "<project-root>/.claude/skills"` (and resolve the repo root via `readlink ~/.claude/skills`).
+Create parent directories first, then use native PowerShell:
 
-   - Create `<project-root>\.claude\` first if it doesn't exist.
-   - If `.claude\skills` already exists as a **real folder with content**: don't delete it silently. Ask whether to move its contents into the central folder (usually yes), then move, remove the folder, and create the junction.
-   - If it's already a junction pointing at the right target, report "already wired" and stop.
+```powershell
+New-Item -ItemType Junction -Path '<project-root>\.agents\skills' -Target '<ai-agents-root>\skills\projects\<project>'
+New-Item -ItemType Junction -Path '<project-root>\.claude\skills' -Target '<ai-agents-root>\skills\projects\<project>'
+```
 
-4. **Gitignore**: ensure the project's `.gitignore` contains `.claude/skills` (the junction target is machine-specific; committing it breaks other machines). Append if missing.
+On macOS or Linux, create equivalent symbolic links with `ln -s` after
+resolving and verifying both absolute paths.
 
-5. **Tell the user**: skills under the central folder now appear in this project's skill list **starting from the next session** (junction creation isn't picked up mid-session). After that, edits in ai-agents are reflected immediately — no re-linking needed.
+## 5. Ignore machine-specific links
+
+Ensure the project `.gitignore` contains the paths for the hosts linked:
+
+```gitignore
+.agents/skills
+.claude/skills
+```
+
+Preserve existing `.gitignore` content and unrelated user changes.
 
 ## Verification
 
-```powershell
-Get-Item "<project-root>\.claude\skills" | Select-Object LinkType, Target
-```
-
-LinkType should read `Junction` with the correct target.
+Inspect each created path and verify its `LinkType` and `Target`. Confirm the
+target contains the expected `SKILL.md` files. Report that newly linked skills
+may require a new Codex or Claude session before appearing in selectors.
