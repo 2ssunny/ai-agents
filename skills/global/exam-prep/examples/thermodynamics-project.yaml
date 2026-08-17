@@ -1,0 +1,63 @@
+# Example: thermodynamics revision pack, fresh project.
+#
+# The exam supplies a data sheet, so formulas on it are classified DS and the
+# pack tells the student which ones they must memorise instead.
+
+schema_version: 1
+
+project:
+  id: mech2001-thermo-2026
+  display_name: MECH2001 Applied Thermodynamics — 2026 revision pack
+  course_code: MECH2001
+  exam_date: 2026-05-18
+
+profile: thermodynamics
+
+paths:
+  sources: sources
+  output: output
+  work_dir: .agent-work/exam-prep
+
+approval:
+  continue_without_approval: false
+  approved_by: null
+  approved_at: null
+  approval_note: null
+
+outputs:
+  - notes_bilingual
+  - notes_english
+  - solutions_bilingual
+  - solutions_english
+  - audit_report
+  - topic_matrix
+  - pdf_qa_report
+
+formats:
+  document: pdf
+  reports: md
+
+page_targets:
+  minimum_pages: 40
+  preferred_min_pages: 70
+  preferred_max_pages: 130
+  maximum_advisory_pages: 220
+  allow_out_of_range_with_explanation: true
+
+verification:
+  run_hooks: true
+  # This course examines the second law throughout and every past paper has a
+  # compressible-flow question, so both optional checks are promoted.
+  additional_required_checks:
+    - entropy_generation
+    - stagnation_vs_static
+  require_human_visual_review: true
+
+qa:
+  render_pages: true
+  max_rendered_pages: null
+
+language:
+  bilingual_primary: ko
+  keep_technical_terms_in: en
+  gloss_on_first_use: true

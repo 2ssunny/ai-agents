@@ -22,6 +22,8 @@ Check `log_summary/{project}_dev_log.md` and `log_summary/{project}_summary.md` 
 
 If no log exists, rely on git evidence and recent file modification times (`git diff HEAD`, recently modified files).
 
+Some skills keep their real state outside git. If `.agent-work/exam-prep/` exists, read `skills/global/exam-prep/references/interop.md` before resuming — git will not show you where that work actually stands.
+
 ## Step 3: Identify the resume point
 
 Synthesize: what was the last completed step, and what is the next incomplete step? Look for:

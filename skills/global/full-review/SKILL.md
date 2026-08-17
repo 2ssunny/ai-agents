@@ -34,6 +34,10 @@ Read the complete diff and relevant surrounding code.
    - Apply project guidance and `global-instructions/code_style.md`; avoid
      low-value formatting comments that automated tooling already enforces
 
+When a skill ships its own verification scripts, run those instead of reviewing
+its output by eye — for exam-prep projects (`.agent-work/exam-prep/` present),
+see `skills/global/exam-prep/references/interop.md`.
+
 ## 3. Respect the requested action
 
 - If the user requested review only, report findings without modifying files.

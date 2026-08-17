@@ -1,0 +1,68 @@
+# Example: structures revision pack.
+#
+# No official data sheet was supplied for this course, so nothing may be
+# classified DS — every formula is MEM or DERIVE, and the missing data sheet is
+# recorded in the manifest's missing_sources. English-only output; the student
+# taking this course does not want the bilingual edition.
+
+schema_version: 1
+
+project:
+  id: civ2100-structures-2026
+  display_name: CIV2100 Structural Analysis — 2026 revision pack
+  course_code: CIV2100
+  exam_date: 2026-06-02
+
+profile: structures
+
+paths:
+  sources: course-material
+  output: revision-pack
+  work_dir: .agent-work/exam-prep
+
+approval:
+  continue_without_approval: false
+  approved_by: null
+  approved_at: null
+  approval_note: null
+
+outputs:
+  - notes_english
+  - solutions_english
+  - audit_report
+  - topic_matrix
+  - pdf_qa_report
+
+formats:
+  document: pdf
+  reports: md
+
+page_targets:
+  minimum_pages: 50
+  preferred_min_pages: 80
+  preferred_max_pages: 140
+  maximum_advisory_pages: 220
+  allow_out_of_range_with_explanation: true
+
+verification:
+  run_hooks: true
+  # Half the past papers are statically indeterminate frames and most questions
+  # ask for a deflection, so both optional checks apply throughout.
+  additional_required_checks:
+    - compatibility
+    - deflection_sign_convention
+  require_human_visual_review: true
+
+qa:
+  render_pages: true
+  # 140 pages of contact sheet is more than anyone reviews in one sitting;
+  # render the first 60 and record a spot check honestly.
+  max_rendered_pages: 60
+
+language:
+  # English-only output: the bilingual edition is not produced, so the parity
+  # check is not applicable and the audit's parity gate is satisfied by
+  # generating only the English edition directory.
+  bilingual_primary: null
+  keep_technical_terms_in: en
+  gloss_on_first_use: false

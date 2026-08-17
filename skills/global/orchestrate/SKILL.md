@@ -23,6 +23,9 @@ final verification. Answer direct questions before starting background work.
   acting as an independent reviewer.
 - Assume agents may share a filesystem. Do not have concurrent agents switch
   branches or edit the same files unless the host provides isolated worktrees.
+- When a skill defines its own phases and completion authority, follow it rather
+  than improvising a split — for exam-prep projects, see
+  `skills/global/exam-prep/references/interop.md`.
 
 ## Model selection
 

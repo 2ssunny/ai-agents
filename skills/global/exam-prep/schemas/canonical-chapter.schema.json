@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "exam-prep canonical chapter",
+  "description": "Structured sidecar for one canonical-content Markdown file. The Markdown holds the prose; this file holds the stable IDs both language editions must share. Every ID listed here must exist as an anchored block in the matching .md file.",
+  "type": "object",
+  "required": ["schema_version", "chapter_id", "title_en", "source_references"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "chapter_id": {
+      "type": "string",
+      "pattern": "^CH-[0-9]{2,}$"
+    },
+    "title_en": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title_ko": {
+      "type": ["string", "null"]
+    },
+    "learning_objectives": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["section_id", "title_en"],
+        "properties": {
+          "section_id": {
+            "type": "string",
+            "pattern": "^SEC-[0-9]{2,}-[0-9]{2,}$"
+          },
+          "title_en": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title_ko": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "concepts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["concept_id", "name_en"],
+        "properties": {
+          "concept_id": {
+            "type": "string",
+            "pattern": "^CON-[0-9]{2,}-[0-9]{2,}$"
+          },
+          "name_en": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name_ko": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "formulas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["equation_id", "classification"],
+        "properties": {
+          "equation_id": {
+            "type": "string",
+            "pattern": "^EQ-[0-9]{2,}-[0-9]{2,}$"
+          },
+          "classification": {
+            "type": "string",
+            "enum": ["DS", "MEM", "DERIVE"],
+            "description": "DS = supplied on the official data sheet, MEM = must be memorised, DERIVE = expected to be reconstructed."
+          },
+          "datasheet_source_id": {
+            "type": ["string", "null"],
+            "description": "Required in practice when classification is DS; identifies the data sheet it appears on."
+          },
+          "statement": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "derivations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["derivation_id"],
+        "properties": {
+          "derivation_id": {
+            "type": "string",
+            "pattern": "^DRV-[0-9]{2,}-[0-9]{2,}$"
+          },
+          "expected_from_memory": {
+            "type": "boolean"
+          },
+          "result_equation_id": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "figures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["figure_id"],
+        "properties": {
+          "figure_id": {
+            "type": "string",
+            "pattern": "^FIG-[0-9]{2,}-[0-9]{2,}$"
+          },
+          "caption_en": {
+            "type": ["string", "null"]
+          },
+          "caption_ko": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "worked_examples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["example_id"],
+        "properties": {
+          "example_id": {
+            "type": "string",
+            "pattern": "^WE-[0-9]{2,}-[0-9]{2,}$"
+          },
+          "title_en": {
+            "type": ["string", "null"]
+          },
+          "past_paper_reference": {
+            "type": ["string", "null"]
+          },
+          "numerical_results": {
+            "type": "array",
+            "description": "Values that must be identical in both language editions.",
+            "items": {
+              "type": "object",
+              "required": ["label", "value"],
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "value": {
+                  "type": ["number", "string"]
+                },
+                "unit": {
+                  "type": ["string", "null"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "exam_triggers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "past_paper_links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_id"],
+        "properties": {
+          "source_id": {
+            "type": "string"
+          },
+          "question": {
+            "type": ["string", "null"]
+          },
+          "year": {
+            "type": ["integer", "null"]
+          }
+        }
+      }
+    },
+    "marking_points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["marking_point_id", "statement"],
+        "properties": {
+          "marking_point_id": {
+            "type": "string",
+            "pattern": "^MP-[0-9]{2,}-[0-9]{2,}$"
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "marks": {
+            "type": ["number", "null"]
+          }
+        }
+      }
+    },
+    "common_errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["error_id", "statement"],
+        "properties": {
+          "error_id": {
+            "type": "string",
+            "pattern": "^ERR-[0-9]{2,}-[0-9]{2,}$"
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "source_references": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Every chapter must be grounded in at least one inventoried source.",
+      "items": {
+        "type": "object",
+        "required": ["source_id"],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "pattern": "^SRC-[0-9]{3,}$"
+          },
+          "pages": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    }
+  }
+}

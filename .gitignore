@@ -10,3 +10,17 @@ skills/projects/ssunny-quant/
 # Server infrastructure references — local only, template excepted
 skills/global/server-runbook/references/*
 !skills/global/server-runbook/references/TEMPLATE.md
+
+# Python (skill scripts and tests)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Secrets — see global-instructions/security_env.md
+.env
+*.env.*
+config.json
+credentials.json
+*.pem
+*.key
+*.token

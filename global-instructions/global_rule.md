@@ -103,6 +103,7 @@ Global skills live in `skills/global/`. Project-specific skills live in
 | `full-review` | Full code and security review with an independent second pass |
 | `orchestrate` | Coordinate explicitly requested multi-agent work |
 | `server-runbook` | Pair-debug servers using project infrastructure references |
+| `exam-prep` | Source-grounded exam revision notes and verified worked solutions |
 | `link-project-skills` | Connect centralized project skills to Claude and/or Codex |
 
 ### Project skills

@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "exam-prep final audit",
+  "description": "Output of final_audit.py. It is recomputed from the working directory on every run; a previous passing audit never carries forward.",
+  "type": "object",
+  "required": ["schema_version", "audited_at", "work_dir", "verdict", "gates", "failures", "summary"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "audited_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "work_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["pass", "fail"]
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["gate_id", "mandatory", "passed", "detail"],
+        "properties": {
+          "gate_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mandatory": {
+            "type": "boolean"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "examples_total",
+        "records_present",
+        "settled_records",
+        "unresolved_records",
+        "stale_records"
+      ],
+      "description": "Honest counts. 'settled' is not a synonym for 'correct'; it means the required evidence exists and the recorded checks passed.",
+      "properties": {
+        "examples_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "records_present": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "settled_records": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unresolved_records": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_records": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "human_visual_review_recorded": {
+          "type": "boolean"
+        },
+        "automated_checks_only": {
+          "type": "array",
+          "description": "Things confirmed by script alone, with no human confirmation.",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
