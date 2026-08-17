@@ -1,44 +1,58 @@
 ---
 name: sync-docs
-description: Synchronize project documentation with the current state of the code — repo docs (README, docs/, plan files), the log_summary dual artifacts (dev_log + summary), and the project's Notion pages via Notion MCP. Use whenever the user says "문서 최신화", "노션에 반영/업데이트", "log_summary 업데이트", "readme 업데이트", "docs sync", or after a batch of work lands and records need to catch up.
+description: Synchronize repository documentation and optional Notion pages with the current code and decisions. Use when the user asks to update docs, README, project plans, log summaries, Notion documentation, or perform a complete documentation sync.
 ---
 
-# Sync Docs
+# Sync Documentation
 
-Documentation drifts behind the code every few sessions and the user repeatedly asks to re-sync it. This skill makes one pass that brings **all three layers** up to date. Don't update just the one file the user named and stop — the request "문서 최신화" means the whole set unless scoped otherwise.
+Bring the requested documentation into agreement with the current code and
+recorded decisions. Do not invent implementation status from plans alone.
 
-## Step 1: Determine what changed
+## 1. Determine what changed
 
-`git log --oneline -15` and `git diff` against the last documented state (the dev_log usually records the last synced point). Build a short list of user-visible changes: new features, changed behavior, architecture decisions, config/env changes.
+Inspect recent commits, the working diff, existing documentation, and project
+logs. Build a concise evidence list of user-visible behavior, architecture,
+configuration, and completed plan items.
 
-## Step 2: Update repo documents
+## 2. Respect scope
 
-- `README.md` — only sections invalidated by the changes (setup steps, feature list, architecture diagram references). Don't rewrite unaffected prose.
-- `docs/`, `plan/` documents — mark completed plan items, correct stale statements.
+- For a complete documentation sync, check `README.md`, relevant `docs/` and
+  `plan/` files, existing `log_summary/` artifacts, and linked Notion pages.
+- For a specifically scoped request, update the named document plus only the
+  directly dependent documents that would otherwise become contradictory.
+- Do not create `log_summary/` unless the project already uses it, project
+  guidance requires it, or the user requests it.
 
-## Step 3: Update the dual artifacts
+## 3. Update repository documents
 
-In `log_summary/`:
+- Change only sections invalidated by the code or decisions.
+- Mark plan items complete only when repository evidence supports completion.
+- Preserve useful historical decisions while removing duplicate or
+  contradictory statements.
+- Keep setup commands, environment requirements, and architecture references
+  executable and current.
 
-- `{project}_dev_log.md` — append what was done, decisions made, and next steps. Prune duplicated or contradicted older entries while you're there.
-- `{project}_summary.md` — refresh the concise summary; never drop critical architectural decisions.
+## 4. Update Notion when in scope
 
-## Step 4: Update Notion
+Use the current host's authorized Notion connector or MCP tools. Search for and
+fetch the existing project page before editing it; do not create duplicates.
 
-Use the Notion MCP tools. Project → Notion location mapping:
+Locate the destination by searching for the project name, and ask only when
+multiple plausible destinations remain. When a project's documentation lives
+somewhere the name does not obviously match, record that mapping in the
+project's own instruction file rather than here — this skill is shared and
+public, so it should not carry anyone's workspace layout.
 
-| Project | Notion location |
-|---------|-----------------|
-| scholar-orient | "Scholar Orient" teamspace → resources/docs pages |
-| ssunny_quant | quant project pages (search "quant" if unsure) |
-| (other) | `notion-search` for the project name; ask if nothing matches |
-
-Update the existing page rather than creating duplicates — fetch it first, then edit the relevant sections. If the Notion MCP is not connected, say so and complete the repo-side sync anyway.
+If Notion is unavailable or unauthenticated, complete the repository portion and
+report the external portion as skipped.
 
 ## Delegation
 
-Documentation writing is mechanical: delegate the drafting to a **haiku** subagent when the update volume is more than a couple of files, per the orchestrate policy. Review its output before writing to Notion.
+Delegate drafting only when the user explicitly requested subagents or
+parallel work. Use the host's default model unless the user specified another.
+Review delegated text against repository evidence before saving it.
 
 ## Report
 
-Finish with a compact list: files touched, Notion pages updated, anything intentionally skipped.
+List documents changed, Notion pages updated, validation performed, and any
+portion intentionally skipped.

@@ -3,3 +3,7 @@ ai_agents_blueprint.md
 # Projects Skiils
 skills/projects/scholar-orient/
 skills/projects/ssunny-quant/
+
+# Server infrastructure references — local only, template excepted
+skills/global/server-runbook/references/*
+!skills/global/server-runbook/references/TEMPLATE.md

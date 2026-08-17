@@ -1,36 +1,67 @@
 ---
 name: server-runbook
-description: Pair-debugging protocol for remote servers plus per-project infrastructure runbooks (docker compose, nginx, psql, WireGuard, systemd, CI runners). Use whenever the user pastes SSH/terminal output from a server, asks "서버에서 뭐 돌려야 해", reports a deployment/CD problem, or debugs anything on scholar-orient-server, ssunnyserver, or the quant server — even if they just paste an error log with no question.
+description: Pair-debugging protocol for remote servers and deployments, backed by local per-project infrastructure references. Use when the user pastes SSH or terminal output from a server, asks what command to run next on a host, or reports a deployment, container, proxy, or CI-runner problem.
 ---
 
 # Server Runbook
 
-The user debugs remote servers by pasting terminal output here and running your suggested commands there. This loop only works if your replies are terse.
+The user debugs remote servers by pasting terminal output here and running the
+suggested commands there. Every extra paragraph costs them a round trip, so the
+value of this skill is almost entirely in how terse the reply is.
 
-## The protocol (this matters most)
+## Reply protocol
 
 When the user pastes server output:
 
 1. Diagnose silently.
-2. Reply with **the next command(s) to run, copy-pasteable, in a code block** — nothing that can't be pasted directly into the terminal.
-3. At most one short line of context above the block ("nginx 설정 오류 — 재검증:"). No multi-paragraph explanations, no option surveys. The user has explicitly asked: "터미널 명령어들만 말해달라고."
-4. If a command is destructive (drops data, restarts prod services during use), flag it in that one line and wait for a go.
-5. Longer explanations only when the user asks "왜?" or the fix requires an actual decision.
+2. Reply with the next command or command set in a **copy-pasteable code block**.
+   Nothing in that block should require editing before it runs.
+3. At most one short line of context above it ("nginx 설정 오류 — 재검증:").
+   No option surveys, no multi-paragraph explanations.
+4. Flag destructive commands (data loss, restarting a production service in use)
+   in that one line and wait for the user to confirm.
+5. Explain at length only when the user asks why, or when the fix needs a real
+   decision from them.
 
-Batch related commands into one block so the user makes one round-trip, and prefer commands whose output confirms the diagnosis (e.g. `nginx -t && systemctl reload nginx` rather than blind restarts).
+Batch related commands into one block so the user makes a single round trip, and
+prefer commands whose output confirms or refutes the diagnosis
+(`nginx -t && systemctl reload nginx` rather than a blind restart).
 
 ## Project infrastructure references
 
-Read the matching reference **before** proposing commands — server names, IPs, ports, and compose file combinations are all documented and guessing them wrong wastes a round-trip:
+Server topology, ports, service layout, and deployment specifics live in
+`references/<project>.md` next to this file. These files are **local to each
+machine and not distributed with this repository**, since infrastructure detail
+is not something to publish.
 
-- **scholar-orient** (two-server setup, WireGuard, embedding pipeline): read `references/scholar-orient.md`
-- **ssunny_quant** (trading bot, docker compose, nginx proxy): read `references/ssunny-quant.md`
+- If `references/<project>.md` exists for the current project, read it before
+  proposing any command. Guessing a hostname, port, or compose-file combination
+  wastes exactly the round trip this skill exists to save.
+- If it does not exist, ask the user for the topology you need, then offer to
+  record it using `references/TEMPLATE.md` so the next session already knows.
 
-For other projects, ask which host/stack before suggesting anything.
+## Diagnosis order
 
-## Known pitfalls (encountered in real sessions)
+Work outward from the process, since most incidents are misattributed to the
+layer the user noticed rather than the layer that failed:
 
-- **IPv6 `[::1]` proxying**: nginx `proxy_pass http://localhost:...` can resolve to `[::1]` while the app listens on IPv4 only → use `127.0.0.1` explicitly.
-- **exFAT mounts**: no POSIX permissions — chmod/chown silently no-op; don't chase phantom permission fixes there.
-- **CORS**: browser-side failures that look like server downtime; check the browser console evidence before touching the server.
-- **Rate limiting**: 429s from the app's own limiter can masquerade as infra failure under repeated testing.
+```
+container/process → local port → reverse proxy → tunnel/DNS → client
+```
+
+Confirm each layer before moving out: `docker compose ps` and service logs, then
+`curl` against the local port, then `nginx -t` and the proxy config, then the
+tunnel or DNS service status.
+
+## Recurring pitfalls
+
+- **IPv6 loopback**: `proxy_pass http://localhost:PORT` can resolve to `[::1]`
+  while the app listens only on IPv4. Use `127.0.0.1` explicitly.
+- **exFAT mounts**: no POSIX permissions, so `chmod`/`chown` silently do nothing.
+  Do not chase permission fixes there.
+- **CORS**: browser-side failures look like server downtime. Check the browser
+  console evidence before touching the server.
+- **Rate limiting**: an application's own limiter returning 429 under repeated
+  testing can masquerade as an infrastructure failure.
+- **Tunnel vs. origin**: when the public URL fails but `curl` against the local
+  port succeeds, the fault is in the tunnel or proxy, not the application.
