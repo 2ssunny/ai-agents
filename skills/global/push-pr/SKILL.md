@@ -11,14 +11,14 @@ Global rules forbid autonomous push. When the user explicitly asks, this skill d
 
 - Commit any uncommitted work first, in logical units (not one mega-commit).
 - Message: Angular convention — `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:` with a clear scope and summary.
-- **Always** append `--author="ssunny-agent <ai-agent@ssunny.me>"`.
-- **Never** add `Co-Authored-By` lines or AI attribution footers — the user has explicitly rejected these.
+- **Always** append `--author` using `commit.author` from `agent-config.json` at the ai-agents repository root. If that file is missing, ask the user for the identity instead of guessing or copying one out of git history.
+- **Never** add `Co-Authored-By` lines or AI attribution footers unless `commit.coAuthorTrailers` is true.
 - Never `--force`, never `--no-verify`.
 
 ## Branch and PR rules
 
-- **Base branch is `develop`** (or the project's integration branch). Never open a PR against `main` and never push directly to `main` — the user merges to `main` themselves via GitHub.
-- If currently on `main`/`develop` with local changes, create a `feat/<name>` or `fix/<name>` branch first.
+- **Base branch is `git.prBaseBranch` from `agent-config.json`** (default `develop`, or the project's integration branch). Never open a PR against a branch listed in `git.protectedBranches` (default `main`) and never push to one directly — when `humanMergesProtectedBranches` is set, the user merges there themselves via GitHub.
+- If currently on a protected or integration branch with local changes, create a `feat/<name>` or `fix/<name>` branch first.
 - PR title follows the same Angular convention as commits. Body: concise summary of what/why, list of key changes.
 - After creating PRs, if multiple are open, present the sensible **merge order** (dependency-first) in one short list.
 

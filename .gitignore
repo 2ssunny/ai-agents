@@ -1,6 +1,9 @@
 ai_agents_blueprint.md
 
-# Projects Skiils
+# Personal agent configuration — copy agent-config.example.json to create it
+agent-config.json
+
+# Project skills — local to each machine, not distributed
 skills/projects/scholar-orient/
 skills/projects/ssunny-quant/
 

@@ -1,0 +1,26 @@
+{
+  "_readme": [
+    "Copy this file to 'agent-config.json' (git-ignored) and edit the values.",
+    "It holds personal preferences only — never put API keys, tokens, or",
+    "passwords here. Agents are allowed to read this file; they are not allowed",
+    "to read secret stores such as .env or config.json.",
+    "When agent-config.json is absent, agents fall back to the defaults",
+    "documented in global-instructions/ and ask before assuming an identity."
+  ],
+
+  "commit": {
+    "author": "your-agent <agent@example.com>",
+    "coAuthorTrailers": false
+  },
+
+  "git": {
+    "prBaseBranch": "develop",
+    "protectedBranches": ["main"],
+    "humanMergesProtectedBranches": true
+  },
+
+  "communication": {
+    "replyLanguage": "en",
+    "styleNotes": ""
+  }
+}
