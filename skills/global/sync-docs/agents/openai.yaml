@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sync Documentation"
+  short_description: "Synchronize repository and Notion documentation"
+  default_prompt: "Use $sync-docs to bring the project documentation in sync with the current code."

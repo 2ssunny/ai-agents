@@ -1,0 +1,4 @@
+interface:
+  display_name: "Server Runbook"
+  short_description: "Guide concise diagnosis of server and deployment issues"
+  default_prompt: "Use $server-runbook to diagnose this server output and give the next safe commands."

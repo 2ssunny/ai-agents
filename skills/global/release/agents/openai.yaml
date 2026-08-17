@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cut a Release"
+  short_description: "Confirm the version bump, gate on CI, then tag and publish"
+  default_prompt: "Use $release to prepare the next version, verify CI, and publish the GitHub release."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Push and Open PR"
+  short_description: "Run the authorized commit, push, and PR workflow"
+  default_prompt: "Use $push-pr to commit the approved changes, push them, and prepare the pull request."

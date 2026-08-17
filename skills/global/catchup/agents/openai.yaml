@@ -1,0 +1,4 @@
+interface:
+  display_name: "Resume Work"
+  short_description: "Reconstruct context and continue interrupted work"
+  default_prompt: "Use $catchup to reconstruct the current repository state and continue the interrupted work."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Link Project Skills"
+  short_description: "Connect centralized skills to Claude and Codex"
+  default_prompt: "Use $link-project-skills to connect this project to its centralized Claude and Codex skills."
