@@ -1,43 +1,62 @@
 ---
 name: full-review
-description: Full code review of a branch or all open PRs with a security focus (auth, CORS, rate-limiting, secrets), followed by cross-review via the Codex plugin. Use whenever the user says "전체 코드리뷰", "코드리뷰 해", "보안 점검", "codex 리뷰 돌려", "codex로 PR 리뷰시켜", or asks for a review pass before merging. Covers both self-review-and-fix and delegating review to Codex.
+description: Review an entire branch or all open pull requests with emphasis on security, correctness, and merge readiness. Use when the user asks for a full code review, security review, review before merging, or an independent second review pass.
 ---
 
 # Full Review
 
-The user's review requests usually mean: review **everything in scope** (not just the latest diff), fix what you find, then get an independent second opinion from Codex. Deliver all three parts.
+Review everything in the requested scope. Do not silently narrow a full-review
+request to the latest commit or a single file.
 
-## Step 1: Establish scope
+## 1. Establish scope
 
-- "전체 코드리뷰" on a branch → the whole diff of the current branch against its base (`git diff develop...HEAD` or `main...HEAD`).
-- "PR 다 리뷰해" → every open PR: `gh pr list --state open`.
-- When ambiguous, default to the wider scope; narrowing later is cheap.
+- For a branch review, compare the current branch with its actual base branch.
+- For an all-PR review, enumerate every open pull request using an authenticated
+  GitHub tool or `gh pr list --state open`.
+- When the scope remains ambiguous after inspecting repository evidence, state
+  the assumed scope before reviewing.
 
-## Step 2: Self-review with security emphasis
+## 2. Review in priority order
 
-Read the full diff. Priority order:
+Read the complete diff and relevant surrounding code.
 
-1. **Security** — the user cares most about this:
-   - Secrets/keys/absolute paths hardcoded anywhere in the diff
-   - Auth: endpoints missing authentication/authorization checks
-   - CORS: wildcard origins, credentials with `*`
-   - Rate limiting on public endpoints
-   - Input validation on user-supplied data (SQL/command injection paths)
-2. **Correctness** — logic errors, unhandled failure paths, race conditions.
-3. **Conventions** — per `global-instructions/code_style.md` (only flag, don't bikeshed).
+1. **Security**
+   - Exposed secrets, credentials, or machine-specific paths
+   - Missing authentication or authorization checks
+   - Unsafe CORS configuration
+   - Missing rate limits on abuse-sensitive public endpoints
+   - Injection paths and inadequate input validation
+2. **Correctness**
+   - Logic errors, unhandled failures, data loss, races, and broken invariants
+3. **Regression risk**
+   - Missing tests, migrations, compatibility handling, or rollback paths
+4. **Conventions**
+   - Apply project guidance and `global-instructions/code_style.md`; avoid
+     low-value formatting comments that automated tooling already enforces
 
-## Step 3: Fix
+## 3. Respect the requested action
 
-Apply fixes for confirmed issues directly (small/clear fixes immediately; larger reworks: list them and confirm scope first). Commit per push-pr rules only if the user has authorized committing.
+- If the user requested review only, report findings without modifying files.
+- If the user requested review and fixes, apply clear in-scope fixes and test
+  them. Ask before a materially broader redesign.
+- Commit or push only when explicitly authorized, using the `push-pr` skill.
 
-## Step 4: Cross-review with Codex
+## 4. Perform an independent second pass
 
-Run `/codex:review` (the Codex plugin) for an independent pass:
+Use the best independent review mechanism exposed by the current host:
 
-- For open-PR scope, iterate over **all** open PRs, one review per PR.
-- If Codex hits a token/rate limit, wait and retry once after the stated cooldown; if it still fails, report which PRs got reviewed and which are pending — don't silently drop them.
-- Triage Codex findings: apply the valid ones, and explicitly note the ones you disagree with and why.
+- In Claude, use the Codex review plugin when it is installed and callable.
+- In Codex, use a separate review agent or isolated review context only when
+  the user explicitly requested delegation or multi-agent work and the host
+  permits it.
+- Otherwise, clear the initial checklist, reread the raw diff from the base,
+  and perform a second pass focused on issues missed by the first.
+
+Triage second-pass findings rather than accepting them automatically. Apply or
+recommend valid findings and explain rejected findings briefly.
 
 ## Report
 
-One section per scope unit (branch or PR): findings by severity, what was fixed, what Codex added, what remains open.
+Lead with findings ordered by severity. Include file and line references,
+evidence, impact, and the smallest safe fix. Then summarize fixes made,
+validation run, second-pass additions, and remaining risks.
