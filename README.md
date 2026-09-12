@@ -72,7 +72,8 @@ cp agent-config.example.json agent-config.json
 |---|---|
 | Claude Code | `~/.claude/CLAUDE.md` |
 | Codex | `~/.codex/AGENTS.md` |
-| Antigravity 등 | 해당 에이전트의 전역 rules 파일 |
+| Antigravity | `~/.gemini/GEMINI.md` |
+| 기타 에이전트 | 해당 에이전트의 전역 rules 파일 |
 
 파일에 이 3줄을 넣는다 (경로만 자신의 것으로):
 
@@ -82,23 +83,42 @@ and comply with it for the whole session. It routes to code style, git workflow,
 security rules, and the skills index.
 ```
 
-### 4단계 — 전역 스킬 연결 (Claude Code만)
+### 4단계 — 전역 스킬 연결
 
-Claude Code는 `~/.claude/skills`에 있는 스킬을 **모든 프로젝트에서** 자동으로 인식한다. 그 폴더를 이 저장소의 `skills/global`로 연결한다.
+Claude Code는 `~/.claude/skills`, Codex는 `~/.agents/skills`에 있는 스킬을
+**모든 프로젝트에서** 자동으로 인식한다. Antigravity는
+`~/.gemini/config/skills`의 자체 스킬을 유지하면서
+`~/.gemini/config/skills.json`에 외부 공용 스킬 폴더를 등록할 수 있다.
 
 **Windows** (관리자 권한 불필요):
 ```cmd
 cmd /c mklink /J "%USERPROFILE%\.claude\skills" "<ai-agents-root>\skills\global"
+cmd /c mklink /J "%USERPROFILE%\.agents\skills" "<ai-agents-root>\skills\global"
 ```
 
 **macOS / Linux**:
 ```bash
 ln -s "<ai-agents-root>/skills/global" "$HOME/.claude/skills"
+ln -s "<ai-agents-root>/skills/global" "$HOME/.agents/skills"
 ```
 
-> `~/.claude/skills`가 **이미 있으면** 위 명령이 실패한다. 안에 직접 만든 스킬이 있으면 먼저 `skills/global/`로 옮기고, 빈 폴더면 지운 뒤 다시 실행한다.
+> `~/.claude/skills` 또는 `~/.agents/skills`가 **이미 있으면** 폴더 전체를
+> 연결하는 명령이 실패한다. 직접 만든 스킬이 있으면 먼저
+> `skills/global/`로 옮기고, 빈 폴더면 지운 뒤 다시 실행한다.
 
-Codex와 Antigravity는 이 단계가 필요 없다. `global_rule.md`의 **SKILLS INDEX** 표가 스킬로 라우팅해주고, SKILL.md는 표준 markdown이라 어떤 에이전트든 읽을 수 있다.
+Antigravity는 디렉터리 정션을 스킬로 열거하지 않을 수 있으므로 중앙 스킬
+폴더를 `~/.gemini/config/skills.json`에 직접 등록한다. Windows 경로는 JSON
+문자열에서 `/`를 사용한다.
+
+```json
+{
+  "entries": [
+    {
+      "path": "<ai-agents-root>/skills/global"
+    }
+  ]
+}
+```
 
 ### 5단계 — 연결 확인
 
@@ -106,15 +126,22 @@ Codex와 Antigravity는 이 단계가 필요 없다. `global_rule.md`의 **SKILL
 # macOS / Linux
 ls -l ~/.claude/skills          # → skills/global 을 가리키는 화살표가 보이면 성공
 cat ~/.claude/CLAUDE.md         # → 3줄 포인터가 보이면 성공
+cat ~/.gemini/GEMINI.md
+cat ~/.gemini/config/skills.json
 ```
 
 ```powershell
 # Windows PowerShell
 Get-Item "$HOME\.claude\skills" | Select-Object LinkType, Target   # LinkType = Junction
+Get-Item "$HOME\.agents\skills" | Select-Object LinkType, Target   # LinkType = Junction
 Get-Content "$HOME\.claude\CLAUDE.md"
+Get-Content "$HOME\.codex\AGENTS.md"
+Get-Content "$HOME\.gemini\GEMINI.md"
+Get-Content "$HOME\.gemini\config\skills.json"
 ```
 
-**Claude Code를 새로 켠다.** 링크는 세션 중간에 인식되지 않고 **다음 세션부터** 반영된다. 그 다음부터는 저장소 쪽 수정이 즉시 반영된다.
+사용 중인 에이전트를 새로 켠다. 링크와 규칙은 세션 중간이 아니라 **다음
+세션부터** 반영될 수 있다. 그 다음부터는 저장소 쪽 수정이 즉시 반영된다.
 
 ---
 

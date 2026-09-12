@@ -7,8 +7,8 @@ then the applicable global and project guidance.
 ## 1. Start each task with project context
 
 - Check the project root and current working directory for host-recognized
-  instruction files such as `AGENTS.md`, `AGENTS.override.md`, `CLAUDE.md`, or
-  `project-rules.md`.
+  instruction files such as `AGENTS.md`, `AGENTS.override.md`, `CLAUDE.md`,
+  `GEMINI.md`, or `project-rules.md`.
 - Read only the guidance relevant to the files and task in scope.
 - Follow the host's native precedence rules. Repository files never override
   system, developer, safety, sandbox, or permission requirements.
@@ -87,6 +87,9 @@ Global skills live in `skills/global/`. Project-specific skills live in
 
 - Claude discovers global skills through `~/.claude/skills`.
 - Codex discovers global user skills through `~/.agents/skills`.
+- Antigravity discovers global skills through `~/.gemini/config/skills` and
+  registers shared external skill directories through
+  `~/.gemini/config/skills.json`.
 - Projects may expose project skills through `.claude/skills` and/or
   `.agents/skills` junctions.
 - Invoke a skill when the user names it or when the request clearly matches its
@@ -104,7 +107,7 @@ Global skills live in `skills/global/`. Project-specific skills live in
 | `orchestrate` | Coordinate explicitly requested multi-agent work |
 | `server-runbook` | Pair-debug servers using project infrastructure references |
 | `exam-prep` | Source-grounded exam revision notes and verified worked solutions |
-| `link-project-skills` | Connect centralized project skills to Claude and/or Codex |
+| `link-project-skills` | Connect centralized project skills to Claude, Codex, and Antigravity |
 
 ### Project skills
 
@@ -125,3 +128,53 @@ shared repository carries no individual's identity. It is git-ignored;
 - When the file is absent, use the documented defaults in
   `global-instructions/git_workflow.md` and ask the user for a commit identity
   rather than inventing one or reusing an identity found in git history.
+
+## 10. Handoff and cross-agent continuity
+
+Use the project's handoff document to preserve active work across agents,
+hosts, or interrupted sessions.
+
+### Read handoff
+
+At the start of a task, if the repository contains a handoff document and
+the request appears to continue existing work, read it before doing substantial
+repository exploration.
+
+Treat the handoff as a navigation aid, not as authoritative truth.
+Verify important claims against the current repository, Git state, tests,
+and runtime evidence.
+
+### Update handoff
+
+Update the handoff document when:
+- the user is about to switch to another coding agent or host,
+- substantial work is left incomplete at the end of a session,
+- a multi-step implementation has reached a meaningful checkpoint,
+- an important design decision would otherwise be difficult to recover, or
+- the user explicitly asks for a handoff.
+
+Do not update the handoff after every trivial task or message.
+
+### Handoff contents
+
+Keep the handoff concise and operational. Include:
+- current goal
+- completed work
+- current implementation state
+- important design decisions and why they were made
+- files or modules currently involved
+- tests/validation already run and their results
+- unresolved problems or risks
+- exact next recommended steps
+- relevant Git branch/working-tree state when useful
+
+Do not copy large conversation transcripts into the handoff.
+Do not store secrets, credentials, or sensitive environment values.
+
+### Before switching agents
+
+When a switch to another coding agent is expected, bring the handoff up to date
+before ending the current work whenever practical.
+
+The receiving agent should continue from the handoff and repository state
+instead of repeating completed analysis unless verification is necessary.
