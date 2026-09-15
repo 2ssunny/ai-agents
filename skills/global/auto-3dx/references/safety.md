@@ -1,0 +1,130 @@
+# auto-3dx safety semantics
+
+Detail behind the rules in `SKILL.md`. Upstream source of truth:
+`docs/api-design.md` in the auto-3dx repository (sections 5, 6, 8, 9, 12, 15).
+
+## 1. Model generation
+
+A `Part` owns one generation counter shared by every collection and wrapper
+reached through it. Topology snapshots are stamped with it and refused once it
+moves.
+
+| Operation through the SDK | Advances |
+|---|---|
+| Creating any feature, sketch, plane, parameter or formula | yes |
+| Removing any of them | yes |
+| Writing a value: parameter `set`, `set_height` / `set_depth` / `set_*_angle`, constraint `set_value` | yes |
+| `ensure_*` that writes to an existing object | yes |
+| Renaming, activating, deactivating or modifying a formula | yes |
+| Closing a `sketch.edit()` block (once per block) | yes |
+| `part.update()`, success **or** failure | yes |
+| A call that raised after reaching CATIA | yes — it advances on attempt |
+| A `ValidationError` raised before any COM call | no |
+| Reads: `list`, `get`, `names`, measurement, inspection, taking a snapshot | no |
+
+Consequences:
+
+- A parameter write stales snapshots even when the parameter drives nothing.
+- Changes made in the CATIA UI or by another script do not advance it.
+- Two `Part` wrappers of the same model do not share a generation. Obtain the
+  Part once per task and keep that object.
+
+## 2. Errors and what to do next
+
+Catch a category when the reaction is the same; catch a concrete class from
+`auto_3dx.errors` when it differs.
+
+| Category | Guarantee | Agent action |
+|---|---|---|
+| `SessionError` (`Com3dxNotFoundError`, `CatiaConnectionError`, `NoActiveEditorError`, `NoActivePartError`) | Could not reach or use a session | Report it; ask the user to start 3DEXPERIENCE, open the Part, or switch from an Assembly to a Part editor |
+| `ValidationError` (including `StaleSnapshotError`) | Refused before any COM call; the model is untouched | Fix the arguments or context. For staleness, take a new snapshot and re-identify the target |
+| `NotFoundError` | No object with that name, decided by enumeration | Check names with `names()` or `inspect.summary()`; ask when unsure |
+| `ConflictError` (`*AlreadyExistsError`, `FeatureConflictError`, `SketchSupportMismatchError`, `AmbiguousNameError`) | The model's names or state block the request; nothing was created | Resolve with the user; never rename or delete the existing object to make room unless asked |
+| `AutomationError` | CATIA was called; the model may have changed. Carries `hresult` | Inspect before any further mutation |
+| `PartUpdateError` | The rebuild failed | Run the recovery procedure below |
+| `PartialCreationError` | Created, but the follow-up rename failed; a default-named object is left behind | Find it through `inspect.summary()` and remove it before retrying |
+
+## 3. Recovering from a failed update
+
+A failed `Part.Update()` leaves the offending feature in the model, and **every
+later update fails until it is removed**. Unrelated-looking follow-up failures
+usually come from this.
+
+1. Stop issuing mutations.
+2. Remove the feature you just created with its `remove_*` method
+   (`remove_pad`, `remove_edge_fillet`, ...). A rectangular pattern has no
+   name lookup: pass the wrapper to `remove_rectangular_pattern(pattern)`.
+3. Call `part.update()` again. Success means a known-good state is restored.
+4. If it still fails, the broken feature is not the one you think. Inspect
+   with `part.inspect.summary()` and report to the user rather than removing
+   things speculatively.
+5. Report what failed and what was removed. Do not retry the same call
+   unchanged.
+
+The SDK never rolls back on its own, because removal cascades (below) make
+automatic rollback more dangerous than reporting.
+
+## 4. Removal side effects
+
+| Removal | Side effect |
+|---|---|
+| `remove_pad` | Also removes the Pad's sketch |
+| `remove_pocket` | The sketch **stays**; remove it separately if you created it |
+| `formulas.remove` | The target parameter keeps the last computed value |
+| `planes.remove(plane)` | An angle plane's two axis points and axis line stay; `remove_geometrical_set()` removes everything the collection created, including planes you did not create in this task |
+| Any removal | Runs through the editor's selection |
+
+Deleting an object you did not create in the current task needs explicit user
+intent that names it.
+
+## 5. Names
+
+- CATIA accepts duplicate names; the SDK refuses to create them and refuses
+  ambiguous lookups. Do not work around this by renaming user objects.
+- A name must be non-empty, have no surrounding whitespace, and contain no `\`.
+- `Parameter.name` may be qualified (`3D Shape1\WIDTH`); use `short_name` to
+  display and match what the user typed.
+- In a formula body, use `part.formulas.relation_name(parameter)`; a body built
+  from `Parameter.name` breaks.
+- `ensure_*` reuses an existing object only when readable data proves it is the
+  same (for example a pad on the same sketch); otherwise it raises a
+  `ConflictError`. Where no such proof exists (planes, edge and face features,
+  patterns) there is no `ensure`.
+
+## 6. Session side effects
+
+- Taking a topology snapshot changes the user's CATIA selection (upstream plans
+  to restore it). Inspection does not touch the selection.
+- `part.is_up_to_date()` is rebuild status only: a standalone parameter change
+  leaves it `True`. It is not an unsaved-changes detector.
+- Everything runs on the main thread.
+
+## 7. Operation classes
+
+| Class | Examples | Rule |
+|---|---|---|
+| Read | `list`, `get`, `names`, `inspect`, `measure`, snapshots | Free to use |
+| Model mutation | `create_*`, `ensure_*`, `set*`, `remove_*`, `update` | In-session only; within the user's request |
+| Persistence | Save, SaveAs, PLMPropagate, writing or overwriting files | Not exposed by the SDK. The user does it in the UI |
+
+A 3DEXPERIENCE save commits to the server and includes every unsaved change in
+the session, not only this task's.
+
+## 8. Raw COM
+
+`wrapper.com_object` is the only escape hatch. It bypasses validation,
+generation tracking and ownership checks, and a normal workflow never needs it.
+
+- Allowed in ordinary work: read-only property reads the SDK documents as
+  living behind `com_object`, such as a `SketchElement`'s radius or a point's
+  coordinates.
+- Not allowed in ordinary work: any raw mutation, raw topology handling, raw
+  save or export, or passing a raw object to get around a `ValidationError`.
+- Raw exploration of missing capabilities belongs in the auto-3dx repository's
+  probe workflow, and only when the user is explicitly developing the SDK.
+
+## 9. Scratch and exploratory changes
+
+When experimenting in a user's session: use distinctive names, wrap mutations
+in `try/finally` that removes what was created, confirm cleanup by counting
+what remains rather than trusting that a removal did not raise, and never save.
