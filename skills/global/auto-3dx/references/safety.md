@@ -120,6 +120,8 @@ generation tracking and ownership checks, and a normal workflow never needs it.
   coordinates.
 - Not allowed in ordinary work: any raw mutation, raw topology handling, raw
   save or export, or passing a raw object to get around a `ValidationError`.
+  Raw `PartDocument.ExportData` in particular failed live on PLM-backed
+  documents and left an unexplained extra editor in the session; do not try it.
 - Raw exploration of missing capabilities belongs in the auto-3dx repository's
   probe workflow, and only when the user is explicitly developing the SDK.
 

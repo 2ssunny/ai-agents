@@ -13,7 +13,7 @@ installation (`B428_Cloud`); other 3DEXPERIENCE releases are unverified.
 | Label | Meaning |
 |---|---|
 | **Verified** | Backed by a live probe and a live integration test: the call succeeded, `Part.Update()` succeeded afterwards, and the result was checked. |
-| **Implemented, not yet re-run live** | In the public API and unit-tested, built on reads or calls that were live-verified earlier, but this exact public path has not been through a live session since it was added or refactored. Use it, and report anything surprising. |
+| **Implemented, not exercised live** | In the public API and unit-tested, built on reads or calls that were live-verified, but no live integration test drives this exact public path yet. Use it, and report anything surprising. |
 | **Not supported** | Absent from the public API. Do not assume it, and do not recreate it with raw COM in a user's project. |
 
 ## Verified
@@ -32,28 +32,27 @@ installation (`B428_Cloud`); other 3DEXPERIENCE releases are unverified.
 | Edge features | `create_edge_fillet`, `create_chamfer` on an `Edge` from `part.topology.edges()`; get / list / remove by name |
 | Face features | `create_shell`, `create_thickness`, `create_hole` on a `Face` from `part.topology.faces()`; get / list / remove by name |
 | Rebuild | `part.update()`; `part.is_up_to_date(target=None)` reports rebuild status, not unsaved changes |
-| Measurement | `part.measurement.measure()` returns `volume_mm3`, `area_mm2`, `mass_kg`, `cog_mm` |
+| Measurement | `part.measurement.measure(item)` returns `volume_mm3`, `area_mm2`, `mass_kg`, `cog_mm` |
+| Sketch elements | Editor geometry returns `SketchElement` (`kind`, `com_object`) |
+| Staleness | One model generation per `Part`; an `Edge` or `Face` from an older snapshot raises `StaleSnapshotError` before any COM call |
+| Errors and root | The five error categories and the small package root |
 
-## Implemented, not yet re-run live
-
-The last live integration run predates the upstream refactor that introduced
-these. Their behaviour is pinned by unit tests.
+## Implemented, not exercised live
 
 - `part.inspect.summary()` / `features()` / `sketches()` / `parameters()`:
   Part name, rebuild status, main-body features with `kind` and `supported`,
-  sketch names, user parameters.
-- `SketchEditor` geometry returning `SketchElement` (`kind`, `com_object`), and
-  the refusal of an element drawn in a different sketch.
-- One shared model generation across every collection of a `Part`, so any
-  mutation through the Part makes topology snapshots stale.
-- `part.measurement.measure()` with no argument measuring the main body.
-- Error categories (`SessionError`, `ValidationError`, `NotFoundError`,
-  `ConflictError`, `AutomationError`) and the small package root.
+  sketch names, user parameters. The underlying reads are live-verified.
+- `part.measurement.measure()` with no argument measuring the main body (the
+  live test passes the body explicitly).
+- The refusal of a `SketchElement` drawn in a different sketch. It happens before
+  any COM call, so unit tests cover it fully.
 
 ## Not supported
 
 - Launching a session; creating a Part, Product, or any PLM object.
-- `Save`, `SaveAs`, `PLMPropagate`, and any file export (STEP, STL, ...).
+- `Save`, `SaveAs`, `PLMPropagate`, and any file export (STEP, STL, ...). Export
+  was probed live: `ExportData` fails with `E_FAIL` on the PLM-backed document of
+  an open Part, so no export API exists.
 - Assembly editing: products, occurrences, assembly constraints.
 - Relations other than formulas (laws, design tables, checks, rules).
 - Deleting sketch constraints; diameter constraints.
