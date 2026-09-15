@@ -53,7 +53,8 @@ attach -> choose the Part explicitly -> inspect -> resolve targets
 2. **Inspect before editing.** `part.inspect.summary()` returns the Part name,
    rebuild status, main-body features (with `kind` and whether the SDK
    `supported` it), sketch names, user parameters, every body, the geometrical
-   sets directly under the Part with their elements, and edge and face counts.
+   sets directly under the Part with their elements, edge and face counts, and
+   the In-Work Object (where CATIA puts the next feature).
    Use `get`/`list`/`names` on collections for more. It does not report the
    contents of nested geometrical sets, sets inside a body, or sketches inside a
    set — do not claim facts about them. If `up_to_date` is already `False`,

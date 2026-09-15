@@ -29,6 +29,10 @@ for geometrical_set in summary.geometrical_sets:
     print(geometrical_set.name, [element.kind for element in geometrical_set.elements])
 if summary.topology is not None:
     print(summary.topology.edges, summary.topology.faces)
+
+in_work = summary.in_work_object        # where CATIA puts the next feature
+if in_work is not None and not in_work.is_main_body:
+    print(f"In-Work Object is {in_work.name} ({in_work.kind}), not the main body")
 ```
 
 ## 2. Read and change a parameter

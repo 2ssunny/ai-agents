@@ -112,6 +112,13 @@ intent that names it.
 - Inspection does not advance the generation and leaves the In-Work Object as
   it found it. `summary.topology` is `None` for a Part without an editor
   selection (built directly from a raw object).
+- The In-Work Object is where CATIA puts the next feature. Read it with
+  `part.inspect.in_work_object()` (`name`, `kind`, `is_main_body`, or `None`),
+  not through `part.com_object.InWorkObject`. SDK operations move it: creating a
+  pad makes the new pad the In-Work Object, creating a plane hands it back to
+  the main body, and removing features does not restore the previous one. There
+  is no public setter; do not assign it through raw COM. If it points somewhere
+  unexpected before a feature task, report it rather than moving it.
 - `part.is_up_to_date()` is rebuild status only: a standalone parameter change
   leaves it `True`. It is not an unsaved-changes detector.
 - Everything runs on the main thread.

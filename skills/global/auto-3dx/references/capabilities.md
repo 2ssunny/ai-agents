@@ -20,18 +20,22 @@ installation (`B428_Cloud`); other 3DEXPERIENCE releases are unverified.
 
 auto-3dx is an ordinary Windows package installed with pip. Its only runtime
 dependency is `pywin32`; `com3dx` comes from the 3DEXPERIENCE installation and is
-found at runtime. No Python distribution is privileged. Upstream evidence on
-`B428_Cloud`, 2026-09-15, all 64-bit:
+found at runtime. No Python distribution is privileged. Upstream evidence, all
+64-bit, live runs on `B428_Cloud`:
 
 | Environment | Python | pywin32 | Unit suite | Live integration |
 |---|---|---|---|---|
-| Standard CPython venv (python.org), editable install | 3.14.2 | 312 | 861 passed | **Verified**: 38 passed, 1 skipped |
-| Standard CPython venv, regular install | 3.14.2 | 312 | 861 passed | not run |
-| Conda environment (Anaconda), editable install | 3.11.16 | 312 | 861 passed | **Verified**: 38 passed, 1 skipped |
-| Conda base, not installed (`PYTHONPATH=src`) | 3.13.9 | 311 | 861 passed | development runs only, no recorded suite result |
+| Standard CPython venv (python.org), editable install | 3.14.2 | 312 | 868 passed | **Verified**: 40 passed |
+| Standard CPython venv, regular install | 3.14.2 | 312 | 868 passed | not run |
+| Conda environment (Anaconda), editable install | 3.11.16 | 312 | 868 passed | **Verified**: 38 passed, 1 skipped, before the In-Work Object tests were added |
+| Conda base, not installed (`PYTHONPATH=src`) | 3.13.9 | 311 | 868 passed | development runs only, no recorded suite result |
+| GitHub Actions Windows runner, regular install | 3.11, 3.12, 3.13, 3.14 | pip-resolved | passed | none (no 3DEXPERIENCE on the runner) |
 
-- Pending: Python 3.12 (listed in upstream CI, no recorded run), 32-bit Python,
-  Microsoft Store Python, and 3DEXPERIENCE releases other than `B428_Cloud`.
+- One live test skips on a Part that lacks a manually added parameter; the
+  40-passed run used a Part that has it.
+- Pending: live integration on Python 3.12 and 3.13 (unit only), the In-Work
+  Object tests on Conda, 32-bit Python, Microsoft Store Python, and
+  3DEXPERIENCE releases other than `B428_Cloud`.
 - The first `Catia.attach()` from a new interpreter builds that Python's COM
   wrapper cache, so it can take a few seconds longer.
 
@@ -55,7 +59,7 @@ found at runtime. No Python distribution is privileged. Upstream evidence on
 | Sketch elements | Editor geometry returns `SketchElement` (`kind`, `com_object`) |
 | Staleness | One model generation per CATIA Part, shared by every wrapper of it (`active_part()`, `part_named()`, `parts()`, separate `Catia.attach()` calls); an `Edge` or `Face` from an older snapshot raises `StaleSnapshotError` before any COM call |
 | Topology selection | `part.topology.edges()` / `faces()` restore the user's CATIA selection; `SelectionNotRestoredWarning` when CATIA refuses part of the restore, with the snapshot still valid |
-| Inspection | `part.inspect.summary()` (and `features()`, `sketches()`, `parameters()`, `bodies()`, `geometrical_sets()`, `topology()`): name, rebuild status, main-body features with `kind` and `supported`, sketch names, user parameters, every body (`is_main`, features, sketches), geometrical sets directly under the Part (elements, `nested_set_count`), edge and face counts (`None` without an editor selection). Changes neither the model, the generation, the selection nor the In-Work Object |
+| Inspection | `part.inspect.summary()` (and `features()`, `sketches()`, `parameters()`, `bodies()`, `geometrical_sets()`, `topology()`, `in_work_object()`): name, rebuild status, main-body features with `kind` and `supported`, sketch names, user parameters, every body (`is_main`, features, sketches), geometrical sets directly under the Part (elements, `nested_set_count`), edge and face counts (`None` without an editor selection), and the In-Work Object (`name`, `kind`, `is_main_body`, or `None`). Changes neither the model, the generation, the selection nor the In-Work Object |
 | Errors and root | The five error categories and the small package root |
 
 ## Implemented, not exercised live
@@ -78,6 +82,7 @@ found at runtime. No Python distribution is privileged. Upstream evidence on
   the main body only, so inspection marks features elsewhere `supported=False`);
   geometrical sets beyond the one the SDK creates for its own planes; axis
   systems; surface (GSD) geometry.
+- Setting the In-Work Object (inspection reads it; there is no setter).
 - Inspection of nested geometrical set contents, geometrical sets inside a body,
   or sketches inside a geometrical set.
 - Persistent or semantic edge/face identity, feature-scoped topology search, or
