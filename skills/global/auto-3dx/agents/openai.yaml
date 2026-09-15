@@ -1,0 +1,4 @@
+interface:
+  display_name: "3DEXPERIENCE CATIA (auto-3dx)"
+  short_description: "Inspect and edit a live CATIA Part safely through the auto-3dx SDK"
+  default_prompt: "Use $auto-3dx to inspect the open Part and make the requested change through the public auto-3dx API."

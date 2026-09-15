@@ -108,6 +108,7 @@ Global skills live in `skills/global/`. Project-specific skills live in
 | `server-runbook` | Pair-debug servers using project infrastructure references |
 | `exam-prep` | Source-grounded exam revision notes and verified worked solutions |
 | `link-project-skills` | Connect centralized project skills to Claude, Codex, and Antigravity |
+| `auto-3dx` | Safely inspect and edit a live 3DEXPERIENCE CATIA Part through the auto-3dx SDK |
 
 ### Project skills
 
