@@ -212,6 +212,7 @@ Windows는 정션, macOS·Linux는 심볼릭 링크를 자동으로 고른다. W
 | `server-runbook` | 서버 터미널 출력을 붙여넣거나 배포 문제 디버깅 |
 | `exam-prep` | 강의노트·기출·해설로 시험 대비 노트/풀이집 만들기 |
 | `link-project-skills` | "이 프로젝트에 스킬 연결해줘" |
+| `auto-3dx` | Python으로 3DEXPERIENCE CATIA 파트 조회·수정 (auto-3dx SDK 사용 계약) |
 
 `exam-prep`은 스크립트와 테스트를 포함한 큰 스킬이다. 자세한 사용법은 [`skills/global/exam-prep/README.md`](skills/global/exam-prep/README.md) 참고.
 
@@ -266,7 +267,8 @@ ai-agents/
 │   │   ├── server-runbook/       서버 페어 디버깅 (references/ 는 로컬 전용)
 │   │   ├── exam-prep/            시험 대비 노트·검증된 풀이집
 │   │   │                         (+ references/ scripts/ schemas/ tests/)
-│   │   └── link-project-skills/  프로젝트 스킬 링크 (+ scripts/)
+│   │   ├── link-project-skills/  프로젝트 스킬 링크 (+ scripts/)
+│   │   └── auto-3dx/             3DEXPERIENCE CATIA SDK 사용 계약 (+ references/ scripts/)
 │   └── projects/             ← 프로젝트별 스킬 (.gitignore — 로컬 전용)
 ├── human-rules/
 │   └── general_rule.md       ← 인간 검토용 체크리스트
