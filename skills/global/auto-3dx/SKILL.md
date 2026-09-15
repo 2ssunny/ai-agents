@@ -17,13 +17,27 @@ that repository's own contract and probe workflow govern instead of this skill.
 
 ## Preconditions
 
-- Windows, Python 3.11+, the project's configured environment, and a running
-  3DEXPERIENCE session with the target Part **already open**. The SDK attaches
-  only: it cannot launch a session or create a Part or Product.
-- Confirm what the installed version exposes before relying on it:
+- Windows, 64-bit Python 3.11+, and a running 3DEXPERIENCE session with the
+  target Part **already open**. The SDK attaches only: it cannot launch a
+  session or create a Part or Product.
+- **Python environment.** Use the interpreter the current project is configured
+  with (its venv, Conda environment, or other documented convention) that has
+  `auto_3dx` installed. Conda is one valid option, not a requirement: do not
+  assume Conda, Anaconda, an environment name, or a machine-specific
+  interpreter path, and do not create a new environment when one is configured.
+- Confirm what that interpreter has installed before relying on it:
   `python -c "import auto_3dx; print(auto_3dx.__file__)"`, then `help()` on the
   class you need. Never write calls from memory of an older version.
-- Current capability state: [references/capabilities.md](references/capabilities.md).
+- If `auto_3dx` is not importable there, report that auto-3dx is not installed
+  in that environment and follow the project's setup conventions. Do not
+  silently switch to some other interpreter you happen to find.
+- `com3dx` ships with the 3DEXPERIENCE installation; it is not a pip package.
+  `Catia.attach()` finds it (explicit path, `AUTO_3DX_COM3DX_PATH`, or the
+  registered `CATIA.Application` server). Do not pip-install it, import it, or
+  edit `sys.path` for it. On `Com3dxNotFoundError`, report it: choosing a
+  specific release path is the user's decision.
+- Verified Python environments and current capability state:
+  [references/capabilities.md](references/capabilities.md).
 
 ## Workflow
 

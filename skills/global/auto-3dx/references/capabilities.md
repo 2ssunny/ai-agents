@@ -16,6 +16,25 @@ installation (`B428_Cloud`); other 3DEXPERIENCE releases are unverified.
 | **Implemented, not exercised live** | In the public API and unit-tested, built on reads or calls that were live-verified, but no live integration test drives this exact public path yet. Use it, and report anything surprising. |
 | **Not supported** | Absent from the public API. Do not assume it, and do not recreate it with raw COM in a user's project. |
 
+## Python environment
+
+auto-3dx is an ordinary Windows package installed with pip. Its only runtime
+dependency is `pywin32`; `com3dx` comes from the 3DEXPERIENCE installation and is
+found at runtime. No Python distribution is privileged. Upstream evidence on
+`B428_Cloud`, 2026-09-15, all 64-bit:
+
+| Environment | Python | pywin32 | Unit suite | Live integration |
+|---|---|---|---|---|
+| Standard CPython venv (python.org), editable install | 3.14.2 | 312 | 861 passed | **Verified**: 38 passed, 1 skipped |
+| Standard CPython venv, regular install | 3.14.2 | 312 | 861 passed | not run |
+| Conda environment (Anaconda), editable install | 3.11.16 | 312 | 861 passed | **Verified**: 38 passed, 1 skipped |
+| Conda base, not installed (`PYTHONPATH=src`) | 3.13.9 | 311 | 861 passed | development runs only, no recorded suite result |
+
+- Pending: Python 3.12 (listed in upstream CI, no recorded run), 32-bit Python,
+  Microsoft Store Python, and 3DEXPERIENCE releases other than `B428_Cloud`.
+- The first `Catia.attach()` from a new interpreter builds that Python's COM
+  wrapper cache, so it can take a few seconds longer.
+
 ## Verified
 
 | Area | What works |

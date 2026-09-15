@@ -13,7 +13,9 @@ Two checks run:
    `auto_3dx.__all__`, and no retired name is used. Without `auto_3dx` the check is
    reported as SKIPPED, which is not a pass.
 
-Run it in the environment where auto-3dx is installed:
+Run it with the interpreter whose auto-3dx installation should be checked -- a venv,
+a Conda environment, or any other Python. It never looks for another interpreter,
+and it prints which interpreter and which `auto_3dx` it used:
 
     python skills/global/auto-3dx/scripts/validate_skill.py
 """
@@ -22,6 +24,7 @@ import ast
 import collections.abc
 import dataclasses
 import importlib
+import importlib.util
 import inspect
 import re
 import sys
@@ -407,6 +410,11 @@ def check_api() -> tuple[str, list[str], int]:
 
 
 def main() -> int:
+    version = ".".join(str(part) for part in sys.version_info[:3])
+    print(f"interpreter: {sys.executable} (Python {version})")
+    auto_3dx_spec = importlib.util.find_spec("auto_3dx")
+    print(f"auto_3dx: {auto_3dx_spec.origin if auto_3dx_spec else 'not installed'}")
+
     document_failures = check_document()
     print(f"document contract: {'FAIL' if document_failures else 'PASS'}")
     for failure in document_failures:
