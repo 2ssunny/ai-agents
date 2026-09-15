@@ -1,13 +1,13 @@
 # auto-3dx safety semantics
 
 Detail behind the rules in `SKILL.md`. Upstream source of truth:
-`docs/api-design.md` in the auto-3dx repository (sections 5, 6, 8, 9, 12, 15).
+`docs/api-design.md` in the auto-3dx repository (sections 5, 6, 7, 8, 9, 12, 15).
 
 ## 1. Model generation
 
-A `Part` owns one generation counter shared by every collection and wrapper
-reached through it. Topology snapshots are stamped with it and refused once it
-moves.
+Each CATIA Part has one generation counter, shared by every `Part` wrapper of
+that Part (matched by COM identity) and by every collection and wrapper reached
+through them. Topology snapshots are stamped with it and refused once it moves.
 
 | Operation through the SDK | Advances |
 |---|---|
@@ -26,8 +26,9 @@ Consequences:
 
 - A parameter write stales snapshots even when the parameter drives nothing.
 - Changes made in the CATIA UI or by another script do not advance it.
-- Two `Part` wrappers of the same model do not share a generation. Obtain the
-  Part once per task and keep that object.
+- A rebuild through one wrapper stales snapshots taken through another wrapper
+  of the same Part, whether it came from `active_part()`, `part_named()`,
+  `parts()` or a separate `Catia.attach()`. Re-reading the Part is safe.
 
 ## 2. Errors and what to do next
 
@@ -43,6 +44,9 @@ Catch a category when the reaction is the same; catch a concrete class from
 | `AutomationError` | CATIA was called; the model may have changed. Carries `hresult` | Inspect before any further mutation |
 | `PartUpdateError` | The rebuild failed | Run the recovery procedure below |
 | `PartialCreationError` | Created, but the follow-up rename failed; a default-named object is left behind | Find it through `inspect.summary()` and remove it before retrying |
+
+Warnings sit outside this hierarchy, so `except Auto3dxError` never catches one.
+`SelectionNotRestoredWarning` (a `UserWarning`) is the only one; see section 6.
 
 ## 3. Recovering from a failed update
 
@@ -93,8 +97,21 @@ intent that names it.
 
 ## 6. Session side effects
 
-- Taking a topology snapshot changes the user's CATIA selection (upstream plans
-  to restore it). Inspection does not touch the selection.
+- `part.topology.edges()` / `faces()`, and `part.inspect.summary()` which counts
+  topology through them, capture the user's CATIA selection, search, restore the
+  selection and check its count.
+  - If the selection cannot be read, the snapshot is refused with
+    `AutomationError` before anything changes. There is nothing to clean up.
+  - If CATIA silently refuses part of the restore (live: a Pad re-added after
+    its own faces), the snapshot is returned and `SelectionNotRestoredWarning`
+    is emitted. The snapshot is valid and the model is unchanged; only UI
+    selection state was lost. Keep using the snapshot, do not retake it to
+    "fix" the selection, do not rebuild the selection with raw `Selection`
+    calls, and tell the user they may need to re-select in the UI. Record the
+    warning rather than silencing it with a blanket filter.
+- Inspection does not advance the generation and leaves the In-Work Object as
+  it found it. `summary.topology` is `None` for a Part without an editor
+  selection (built directly from a raw object).
 - `part.is_up_to_date()` is rebuild status only: a standalone parameter change
   leaves it `True`. It is not an unsaved-changes detector.
 - Everything runs on the main thread.

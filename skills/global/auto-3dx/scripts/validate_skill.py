@@ -273,8 +273,26 @@ class ApiChecker:
                 getitem = inspect.getattr_static(base[1], "__getitem__", None)
                 return return_type(getitem) if inspect.isfunction(getitem) else None
             return None
+        if isinstance(node, (ast.ListComp, ast.SetComp, ast.GeneratorExp, ast.DictComp)):
+            return self.comprehension(node)
         for child in ast.iter_child_nodes(node):
             self.expr(child)
+        return None
+
+    def comprehension(self, node: ast.ListComp | ast.SetComp | ast.GeneratorExp | ast.DictComp) -> Inferred:
+        """Checks a comprehension with its loop variables typed, without leaking them."""
+        saved = dict(self.env)
+        for generator in node.generators:
+            iterable = self.expr(generator.iter)
+            self.bind_target(generator.target, iterable[1] if iterable and iterable[0] == "seq" else None)
+            for condition in generator.ifs:
+                self.expr(condition)
+        if isinstance(node, ast.DictComp):
+            self.expr(node.key)
+            self.expr(node.value)
+        else:
+            self.expr(node.elt)
+        self.env = saved
         return None
 
     def attribute(self, node: ast.Attribute) -> Inferred:
@@ -291,14 +309,16 @@ class ApiChecker:
             self.checked += 1
             return self.wrap(value)
         cls = owner[1]
+        # Dataclass fields first: a field with a default is also a class attribute
+        # holding that default, which would hide the field's annotated type.
+        if dataclasses.is_dataclass(cls) and node.attr in {f.name for f in dataclasses.fields(cls)}:
+            self.checked += 1
+            try:
+                return resolve_hint(typing.get_type_hints(cls).get(node.attr))
+            except Exception:  # noqa: BLE001
+                return None
         static = inspect.getattr_static(cls, node.attr, MISSING)
         if static is MISSING:
-            if dataclasses.is_dataclass(cls) and node.attr in {f.name for f in dataclasses.fields(cls)}:
-                self.checked += 1
-                try:
-                    return resolve_hint(typing.get_type_hints(cls).get(node.attr))
-                except Exception:  # noqa: BLE001
-                    return None
             self.fail(node, f"{cls.__name__} has no member {node.attr!r}")
             return None
         self.checked += 1

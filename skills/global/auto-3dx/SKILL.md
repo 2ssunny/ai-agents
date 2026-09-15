@@ -35,14 +35,15 @@ attach -> choose the Part explicitly -> inspect -> resolve targets
 
 1. **Attach.** `Catia.attach()`. `ActiveEditor` does not reliably follow the
    UI tab, so when more than one editor is open (`catia.editors()`), select
-   with `catia.part_named(name)`. If the right Part is unclear, ask. Obtain the
-   `Part` once and keep using that object for the whole task.
+   with `catia.part_named(name)`. If the right Part is unclear, ask.
 2. **Inspect before editing.** `part.inspect.summary()` returns the Part name,
    rebuild status, main-body features (with `kind` and whether the SDK
-   `supported` it), sketch names and user parameters. Use `get`/`list`/`names`
-   on collections for more. The summary does not cover other bodies,
-   geometrical sets or topology counts — do not claim facts about them. If
-   `up_to_date` is already `False`, report it before stacking changes.
+   `supported` it), sketch names, user parameters, every body, the geometrical
+   sets directly under the Part with their elements, and edge and face counts.
+   Use `get`/`list`/`names` on collections for more. It does not report the
+   contents of nested geometrical sets, sets inside a body, or sketches inside a
+   set — do not claim facts about them. If `up_to_date` is already `False`,
+   report it before stacking changes.
 3. **Resolve targets by name.** `NotFoundError` or `AmbiguousNameError` means
    ask the user; never pick the first match. Do not overwrite or reuse an
    existing user object unless the request clearly refers to it. Give objects
@@ -65,8 +66,8 @@ Minimal usage patterns: [references/examples.md](references/examples.md).
   (`Auto3dxError`, `SessionError`, `ValidationError`, `NotFoundError`,
   `ConflictError`, `AutomationError`, `PartUpdateError`, `StaleSnapshotError`).
   Reach everything else through attributes (`part.sketches`,
-  `part.part_design`, `part.topology`, ...); import specific errors from
-  `auto_3dx.errors`.
+  `part.part_design`, `part.topology`, ...); import specific errors and
+  warnings from `auto_3dx.errors`.
 - Do not use `win32com`, `com3dx`, `pywintypes`, `CATIA.Application`,
   `ShapeFactory`, `HybridShapeFactory`, `Selection` or other Automation calls
   directly for CAD work.
@@ -85,10 +86,13 @@ Minimal usage patterns: [references/examples.md](references/examples.md).
 - `part.topology.edges()` / `part.topology.faces()` return a snapshot of the
   **whole solid**. `Edge.index` / `Face.index` is a position in that snapshot,
   not an identity; `descriptor` is for logging only and cannot be resolved later.
-- Any mutation through the Part — creating, removing or renaming anything,
-  writing any parameter or dimension value, closing a `sketch.edit()` block, and
-  `part.update()` whether it succeeds or fails — makes every earlier snapshot
-  stale. Using one raises `StaleSnapshotError` before CATIA is touched.
+- Any mutation through any wrapper of the same CATIA Part — creating, removing
+  or renaming anything, writing any parameter or dimension value, closing a
+  `sketch.edit()` block, and `part.update()` whether it succeeds or fails —
+  makes every earlier snapshot stale. The generation is shared by the
+  underlying Part, whichever `active_part()`, `part_named()` or `parts()` call
+  produced the wrapper. Using a stale snapshot raises `StaleSnapshotError`
+  before CATIA is touched.
 - Take a fresh snapshot immediately before each topology-consuming call. After
   `StaleSnapshotError`, re-snapshot **and re-identify the target**: the same
   index in a new snapshot can be a different edge. Never retry with the old
@@ -98,7 +102,13 @@ Minimal usage patterns: [references/examples.md](references/examples.md).
 - No verified selector finds "the top face" or "the edge at X". When the user
   needs a specific edge or face and the SDK cannot prove which one it is, say
   so and ask; do not guess from an index.
-- Taking a snapshot currently changes the user's CATIA selection.
+- Taking a snapshot (and `part.inspect.summary()`, which counts topology)
+  restores the user's CATIA selection. If CATIA silently refuses part of the
+  restore, the snapshot is still returned with `SelectionNotRestoredWarning`:
+  the snapshot is valid and the model is unchanged; only the UI selection was
+  lost. Keep the snapshot, do not retry or repair the selection with raw COM,
+  and tell the user they may need to re-select. The warning is not an
+  `Auto3dxError`, so never silence it with a blanket filter.
 
 ## Ownership and context checks
 

@@ -10,17 +10,17 @@ on a specific commit at runtime.
 |---|---|
 | Upstream repository | `https://github.com/2ssunny/auto-3dx` (local clone) |
 | Branch reviewed | `develop` (local; ahead of `origin/develop`, unpushed) |
-| Last reviewed commit | `e32e7472001250379102c6125a8499e7e9af41d5` |
-| Commit date / subject | 2026-09-15 — `docs: stop claiming HybridShapes enumeration is unverified` |
+| Last reviewed commit | `6ec542642a5b133781389f0ac7c2d7a024a995d3` |
+| Commit date / subject | 2026-09-15 — `feat(inspect): report bodies, geometrical sets and topology counts` |
 | Package version | `0.1.0` (pre-1.0; breaking changes expected) |
 | Reviewed on | 2026-09-15 |
-| Unit tests at review | 832 passed (run at `23a0d86`; `src/` and `tests/` unchanged since) |
-| Live integration at review | Re-run 2026-09-15 after the refactor: 34 passed, 1 skipped (per upstream docs) |
+| Unit tests at review | 861 passed (run during review) |
+| Live integration at review | Re-run 2026-09-15 after the changes below: 38 passed, 1 skipped (per upstream docs) |
 
 Next sync starts from:
 
 ```bash
-git -C <auto-3dx-clone> log --oneline e32e7472001250379102c6125a8499e7e9af41d5..HEAD
+git -C <auto-3dx-clone> log --oneline 6ec542642a5b133781389f0ac7c2d7a024a995d3..HEAD
 ```
 
 ## Review history
@@ -29,6 +29,7 @@ git -C <auto-3dx-clone> log --oneline e32e7472001250379102c6125a8499e7e9af41d5..
 |---|---|
 | `23a0d86` | Initial skill |
 | `e32e747` | Docs and probe only. Live rerun promoted `SketchElement`, shared-generation staleness and the error categories to Verified; export recorded as probed and unavailable |
+| `6ec5426` | Topology searches restore the selection (`SelectionNotRestoredWarning`), one generation per CATIA Part across wrappers, and `part.inspect` bodies, geometrical sets and topology counts, all live-tested. Removed the "snapshot changes the selection" and "obtain the Part once" workarounds; inspection promoted to Verified |
 
 ## Evidence reviewed
 
@@ -38,19 +39,20 @@ git -C <auto-3dx-clone> log --oneline e32e7472001250379102c6125a8499e7e9af41d5..
 - `src/auto_3dx/__init__.py` root exports and the public classes under
   `core`, `geometry`, `parameters`, `formulas`, `measurement`, `inspect`, `errors`
 - `tests/integration/` contents, to decide which public paths the live run covers
+  (`test_inspection_live.py`, `test_shared_generation_live.py`,
+  `test_edge_features_live.py::test_snapshots_restore_the_user_selection_and_stay_usable`)
 - `scripts/probes/` 38 (inspection reads, selection restore) and 39 (export)
 
-## Live-verified upstream but not yet in the public API
+## Not yet in the public API
 
-Watch for these on the next sync; promote them only once the SDK implements them.
+Watch for these on the next sync; promote them only once the SDK implements
+them and a live test drives them.
 
-- Topology snapshots restoring the user's selection (restore verified by probe 38).
-  Until implemented, the skill keeps saying a snapshot changes the selection.
-- One generation per CATIA Part across `Part` wrappers (Part COM identity verified).
-  Until implemented, the skill keeps "obtain the Part once".
-- `part.inspect` fields for other bodies, geometrical sets, and edge and face counts
-  (reads verified by probe 38).
-- `HybridShapes` enumeration (verified); no `list`/`get`/`ensure` on planes yet.
+- `part.inspect` for nested geometrical set contents, geometrical sets inside a
+  body, and sketches inside a geometrical set (no live read backs them).
+- `list`/`get`/`ensure` on planes (`HybridShapes` enumeration is verified).
+- File export: probed live and unavailable for PLM-backed documents. Keep it
+  unsupported and keep agents away from raw `ExportData`.
 
 ## Upstream documentation drift seen at this review
 
@@ -77,8 +79,8 @@ was followed in each case.
    `references/examples.md` for call shapes. Promote a capability to Verified
    only when a live integration test drives that public path; a class, a mock
    test, or a probe of the underlying raw reads is not enough.
-4. Remove obsolete patterns, and add newly retired names to `RETIRED_NAMES` in
-   `scripts/validate_skill.py`.
+4. Remove obsolete patterns and workarounds, and add newly retired names to
+   `RETIRED_NAMES` in `scripts/validate_skill.py`.
 5. Run the validator in the environment where auto-3dx is installed:
    `python skills/global/auto-3dx/scripts/validate_skill.py`. An API check that
    reports SKIPPED has not validated the examples.

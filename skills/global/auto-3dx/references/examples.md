@@ -22,6 +22,13 @@ print(summary.render())
 for feature in summary.features:
     if not feature.supported:
         print(f"{feature.name} is a {feature.kind}; auto-3dx cannot edit that kind")
+
+for body in summary.bodies:
+    print(body.name, body.is_main, len(body.features), len(body.sketches))
+for geometrical_set in summary.geometrical_sets:
+    print(geometrical_set.name, [element.kind for element in geometrical_set.elements])
+if summary.topology is not None:
+    print(summary.topology.edges, summary.topology.faces)
 ```
 
 ## 2. Read and change a parameter
@@ -89,12 +96,20 @@ print(pad.height, after.volume_mm3 - before.volume_mm3)
 ## 5. Reacquire topology before every topology-consuming call
 
 ```python
+import warnings
+
 from auto_3dx import Catia, PartUpdateError
+from auto_3dx.errors import SelectionNotRestoredWarning
 
 part = Catia.attach().active_part()
 design = part.part_design
 
-edges = part.topology.edges()           # the whole solid, valid for this generation only
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter("always", SelectionNotRestoredWarning)
+    edges = part.topology.edges()       # the whole solid, valid for this generation only
+if any(issubclass(item.category, SelectionNotRestoredWarning) for item in caught):
+    print("Snapshot is valid; tell the user their CATIA selection was not fully restored.")
+
 edge = edges[0]                         # a position in this snapshot, not a semantic choice
 print(len(edges), edge.descriptor)      # descriptor is for logging only
 

@@ -34,14 +34,13 @@ installation (`B428_Cloud`); other 3DEXPERIENCE releases are unverified.
 | Rebuild | `part.update()`; `part.is_up_to_date(target=None)` reports rebuild status, not unsaved changes |
 | Measurement | `part.measurement.measure(item)` returns `volume_mm3`, `area_mm2`, `mass_kg`, `cog_mm` |
 | Sketch elements | Editor geometry returns `SketchElement` (`kind`, `com_object`) |
-| Staleness | One model generation per `Part`; an `Edge` or `Face` from an older snapshot raises `StaleSnapshotError` before any COM call |
+| Staleness | One model generation per CATIA Part, shared by every wrapper of it (`active_part()`, `part_named()`, `parts()`, separate `Catia.attach()` calls); an `Edge` or `Face` from an older snapshot raises `StaleSnapshotError` before any COM call |
+| Topology selection | `part.topology.edges()` / `faces()` restore the user's CATIA selection; `SelectionNotRestoredWarning` when CATIA refuses part of the restore, with the snapshot still valid |
+| Inspection | `part.inspect.summary()` (and `features()`, `sketches()`, `parameters()`, `bodies()`, `geometrical_sets()`, `topology()`): name, rebuild status, main-body features with `kind` and `supported`, sketch names, user parameters, every body (`is_main`, features, sketches), geometrical sets directly under the Part (elements, `nested_set_count`), edge and face counts (`None` without an editor selection). Changes neither the model, the generation, the selection nor the In-Work Object |
 | Errors and root | The five error categories and the small package root |
 
 ## Implemented, not exercised live
 
-- `part.inspect.summary()` / `features()` / `sketches()` / `parameters()`:
-  Part name, rebuild status, main-body features with `kind` and `supported`,
-  sketch names, user parameters. The underlying reads are live-verified.
 - `part.measurement.measure()` with no argument measuring the main body (the
   live test passes the body explicitly).
 - The refusal of a `SketchElement` drawn in a different sketch. It happens before
@@ -56,9 +55,12 @@ installation (`B428_Cloud`); other 3DEXPERIENCE releases are unverified.
 - Assembly editing: products, occurrences, assembly constraints.
 - Relations other than formulas (laws, design tables, checks, rules).
 - Deleting sketch constraints; diameter constraints.
-- Bodies other than the main body; geometrical sets (beyond the one the SDK
-  creates for its own planes); axis systems; surface (GSD) geometry.
-- Inspection of other bodies, geometrical sets, or edge and face counts.
+- Editing bodies other than the main body (`part_design` and `sketches` work on
+  the main body only, so inspection marks features elsewhere `supported=False`);
+  geometrical sets beyond the one the SDK creates for its own planes; axis
+  systems; surface (GSD) geometry.
+- Inspection of nested geometrical set contents, geometrical sets inside a body,
+  or sketches inside a geometrical set.
 - Persistent or semantic edge/face identity, feature-scoped topology search, or
   selecting an edge or face by geometry.
 - Bounding boxes or extents (removed because CATIA silently returned zeros).
