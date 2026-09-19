@@ -34,7 +34,13 @@ from pathlib import Path
 from typing import Any
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
-CODE_FILES = ("SKILL.md", "references/examples.md")
+CODE_FILES = (
+    "SKILL.md",
+    "references/examples.md",
+    "references/topology.md",
+    "references/editing.md",
+    "references/part-design.md",
+)
 ALLOWED_FRONTMATTER_KEYS = {"name", "description"}
 MAX_SKILL_LINES = 200
 USER_PATH_PATTERNS = (r"[A-Za-z]:\\Users\\", r"/home/[a-z]+/", r"/Users/[a-z]+/")

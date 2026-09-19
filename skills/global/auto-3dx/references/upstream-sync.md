@@ -4,125 +4,144 @@ Maintenance metadata for keeping this skill in step with the auto-3dx SDK.
 Agents using the skill do not need this file, and nothing in the skill depends
 on a specific commit at runtime.
 
+**This skill reflects SDK capabilities through Phase 3, SDK commit `a92fa7a`.**
+
 ## Last review
 
 | Field | Value |
 |---|---|
 | Upstream repository | `https://github.com/2ssunny/auto-3dx` (local clone) |
-| Branch reviewed | `main`, pushed. `develop` exists on origin and is merged into `main` |
-| Last reviewed commit | `9b2f4023608dc23f4d07b53fce3dfd35093d0649` |
-| Commit date / subject | 2026-09-16 — `Merge pull request #3 from 2ssunny/develop` |
+| Branch reviewed | `develop`, 15 commits ahead of `origin/develop`. Local review only |
+| Last reviewed commit | `a92fa7a` — `docs: document Phase 3 operations and their verified limits` |
+| Phase 1 | `3381f0c` safety fixes, `e095234` live validation, `b36c21f` docs |
+| Phase 2 | `08b3dfc` existing-model editing, `e5a248a` live validation, `ebb340a` docs |
+| Phase 3 | `f2ee36f` patterns / booleans / constraint removal / suppression, `b518ba3` live validation and raw-COM removal, `a92fa7a` docs |
 | Package version | `0.1.0` (pre-1.0; breaking changes expected) |
-| Reviewed on | 2026-09-16 |
-| Unit tests at review | 868 passed, run during review in a standard CPython 3.14.2 venv (editable install of `HEAD`); GitHub Actions `unit-tests` at `9b2f402` passed on Windows CPython 3.11, 3.12, 3.13 and 3.14 |
-| Live integration at review | Standard CPython 3.14.2 venv: 40 passed, including the In-Work Object tests. Conda 3.11.16: 38 passed, 1 skipped, before those tests were added (per upstream docs) |
+| Reviewed on | 2026-09-19 |
+| Unit tests at review | 1089 passed, run during review in a standard CPython 3.14.2 venv (editable install of `develop`) |
+| Live integration at review | 56 passed, 6 skipped, plus Phase 1, Phase 2 and Phase 3 acceptance scripts, per upstream docs. Acceptance uses the public API only |
+| CI | Last ran at `9b2f402`; the reviewed commits are unpushed, so no CI result covers them |
 
 Next sync starts from:
 
 ```bash
-git -C <auto-3dx-clone> log --oneline 9b2f4023608dc23f4d07b53fce3dfd35093d0649..HEAD
+git -C <auto-3dx-clone> log --oneline a92fa7a..HEAD
 ```
 
-**Upstream history was rewritten when it was published.** The commits recorded
-below before `9b2f402` are no longer ancestors of `main`. `1d7162f` has the same
-tree as `618a75a` on `main`, so this review compared trees with
-`git diff 1d7162f HEAD`. If a recorded commit is ever missing from the ancestry
-again, compare trees the same way instead of reading `log <old>..HEAD`.
+Upstream history was rewritten once when it was published (2026-09-16). If a
+recorded commit is ever missing from the ancestry, compare trees with
+`git diff <last-reviewed> HEAD` instead of reading `log <old>..HEAD`.
 
 ## Review history
 
 | Upstream commit | Outcome |
 |---|---|
 | `23a0d86` | Initial skill |
-| `e32e747` | Docs and probe only. Live rerun promoted `SketchElement`, shared-generation staleness and the error categories to Verified; export recorded as probed and unavailable |
-| `6ec5426` | Topology searches restore the selection (`SelectionNotRestoredWarning`), one generation per CATIA Part across wrappers, and `part.inspect` bodies, geometrical sets and topology counts, all live-tested. Removed the "snapshot changes the selection" and "obtain the Part once" workarounds; inspection promoted to Verified |
-| `1d7162f` | Packaging, docs, CI and probes only; `src/` unchanged. Standard CPython and Conda both verified live, so the skill gained an environment-neutral interpreter rule, `com3dx` guidance and an environment evidence table. CAD behaviour and safety rules unchanged |
-| `9b2f402` | Published on `main` with rewritten history. `part.inspect.in_work_object()` / `summary.in_work_object` added and live-tested on standard CPython; CI verified the unit suite on Windows CPython 3.11–3.14; upstream fixed the three recorded doc drifts |
+| `e32e747` | Live rerun promoted `SketchElement`, staleness and the error categories to Verified; export recorded as unavailable |
+| `6ec5426` | Selection-restoring topology searches, one generation per CATIA Part, `part.inspect` bodies / sets / topology counts |
+| `1d7162f` | Packaging and docs; the skill became environment-neutral (Conda is optional) |
+| `9b2f402` | `part.inspect.in_work_object()`; CI on Windows CPython 3.11–3.14 |
+| `b36c21f` | **Phase 1**: body-scoped topology with ownership and `CrossBodyReferenceError`, `body.update()` / `part.update(target)`, `TargetNotUpToDateError`, `SupportNotUpdatedError`, `InactivePartError`, `EnumParam` reads. Update-failure guidance reversed to repair-before-delete |
+| `a92fa7a` | **Phases 2–3**: feature dimension editing, sketch element rediscovery, `work_at(feature)`, parameter dependency guard, circular pattern, multi-body booleans, constraint removal, feature suppression, `catia.active_window_title`. Skill reorganised into `topology.md`, `editing.md` and `part-design.md` |
 
-## Python environment evidence
+## What changed for agents at this review
 
-| Environment | Implemented | Unit-tested | Live-tested |
-|---|---|---|---|
-| Standard CPython venv, editable install | yes | 868 passed (3.14.2; upstream and this review) | yes: 40 passed (3.14.2, pywin32 312) |
-| Standard CPython venv, regular install | yes | 868 passed (3.14.2) | not run |
-| Conda environment, editable install | yes | 868 passed (3.11.16) | yes: 38 passed, 1 skipped (3.11.16, pywin32 312), before the In-Work Object tests |
-| Conda base, `PYTHONPATH=src` | not an install path | 868 passed (3.13.9, pywin32 311) | development runs only |
-| GitHub Actions Windows runner, regular install | yes | passed on 3.11, 3.12, 3.13, 3.14 at `9b2f402` | none (no 3DEXPERIENCE) |
+**Phase 2 — editing an existing model.**
 
-Packaging basis: `pywin32` is declared only for `sys_platform == "win32"`, the
-`test` extra supplies pytest, and `com3dx` is not a dependency. It ships with
-3DEXPERIENCE and the transport finds it through `AUTO_3DX_COM3DX_PATH` or the
-registered `CATIA.Application` server, which worked from both live environments.
+- Verified feature dimension setters: fillet `radius`; chamfer `length1` and
+  `angle`; hole `diameter` and `depth`; shell `internal_thickness` and
+  `external_thickness`; thickness `offset`. Setters do not rebuild.
+- `sketch.elements()`, `sketch.get_element(name)`, `SketchElement.name` / `kind`
+  / `radius`, and `SketchElementNotFoundError`.
+- `part.work_at(feature)` for the history insertion position, distinct from
+  `work_in(body)`.
+- `part.parameters.dependents(name)` and the `ParameterInUseError` guard, driven
+  by `Formula.GetInParameter` rather than by parsing formula text.
 
-Remaining environment limitations:
+**Phase 3 — core CAD operations.**
 
-- Live integration has run only on CPython 3.14.2 and Conda 3.11.16. Python 3.12
-  and 3.13 have unit evidence only.
-- The In-Work Object live tests have run on standard CPython 3.14.2 only.
-- 32-bit Python, Microsoft Store Python, and 3DEXPERIENCE releases other than
-  `B428_Cloud` are unverified.
-- A regular (non-editable) install has unit evidence only.
-- The first attach from a new interpreter builds its COM wrapper cache.
+- `create_circular_pattern(name, feature, angular_instances,
+  angular_spacing_deg, axis="Z")` with list/get/remove and an editable angular
+  row; `radial_instances` read-only.
+- `create_boolean_remove` / `_add` / `_intersect` / `_assemble`, with the tool
+  body consumed permanently and `remove_boolean(..., delete_consumed_body=True)`
+  as the destructive removal.
+- `sketch.constraints.remove(...)`, edit-state aware.
+- `is_active` / `activate()` / `deactivate()` on Part Design features, advancing
+  the model generation.
+- `catia.active_window_title`, so scripts need no raw window read.
+
+## Deliberately not documented
+
+- **Circular pattern on X or Y.** Only `"Z"` was verified; the other origin
+  planes rotated about something the test geometry could not identify.
+- **`Chamfer.Length2`**, a generic `Hole.Depth`, generic `Thickness.Thickness` /
+  `.Value`, rectangular-pattern dimensions, multi-sections-solid dimensions:
+  each verified absent or unwritable, not merely untried.
+- **`Line2D` coordinate reads**: no coordinate members in this release.
+- **Dependency safety beyond formulas**: rules, checks, laws, programs and
+  design tables expose no verified input list.
+- **Suppression dependency analysis**: the SDK does not predict which
+  suppressions are safe, so the skill teaches suppress → update → reactivate.
+- **Per-instance pattern activation, boolean operand replacement, consumed-body
+  restoration**: no public API.
+
+## Observed upstream detail
+
+`CircularPattern` and `BooleanOperation` are reachable through
+`auto_3dx.geometry.part_design` but are not re-exported from
+`auto_3dx.geometry`, unlike the other feature wrappers. Nothing in the skill
+depends on importing them directly — agents reach them through
+`part.part_design` — but it is worth raising upstream on the next pass.
+
+## Environment evidence
+
+| Environment | Unit-tested | Live-tested |
+|---|---|---|
+| Standard CPython venv, editable install | 1089 passed (3.14.2, this review) | 56 passed, 6 skipped (3.14.2, pywin32 312) |
+| Standard CPython venv, regular install | passed at an earlier commit | not run |
+| Conda environment, editable install | passed at an earlier commit (3.11.16) | predates Phases 2–3 |
+| GitHub Actions Windows runner | passed on 3.11–3.14 at `9b2f402` | none (no 3DEXPERIENCE) |
+
+Remaining limitations: live integration has run on CPython 3.14.2 only for
+Phases 2–3; 32-bit Python, Microsoft Store Python and 3DEXPERIENCE releases
+other than `B428_Cloud` are unverified.
 
 ## Evidence reviewed
 
-- `docs/api-design.md` (authoritative contract; supersedes the older layering,
-  error and root-export sections of `docs/conventions.md`), including section 11
-  on the In-Work Object
-- `docs/capabilities.md`, `docs/status.md`, `docs/conventions.md` (environment,
-  packaging, 1.5 including the In-Work Object measurements), `README.md`
-  (verified Python environments, model inspection)
-- `pyproject.toml`, `.github/workflows/unit-tests.yml` and its run at `9b2f402`
-  (per-job results), `tests/integration/conftest.py`
-- `src/auto_3dx/__init__.py` root exports and the public classes under
-  `core`, `geometry`, `parameters`, `formulas`, `measurement`, `inspect`, `errors`
-- `tests/integration/` contents, to decide which public paths the live run covers
-  (`test_inspection_live.py::test_in_work_object_follows_temporary_geometry_and_cleanup`)
-- `scripts/probes/` 01 (com3dx found through the SDK), 38 (inspection reads,
-  selection restore) and 39 (export)
-
-## Not yet in the public API
-
-Watch for these on the next sync; promote them only once the SDK implements
-them and a live test drives them.
-
-- `part.inspect` for nested geometrical set contents, geometrical sets inside a
-  body, and sketches inside a geometrical set (no live read backs them).
-- Setting the In-Work Object (read-only today; no public setter).
-- `list`/`get`/`ensure` on planes (`HybridShapes` enumeration is verified).
-- File export: probed live and unavailable for PLM-backed documents. Keep it
-  unsupported and keep agents away from raw `ExportData`.
-
-## Upstream documentation drift seen at this review
-
-None open. The three drifts recorded at earlier reviews (constraint arguments
-in `docs/capabilities.md` 3.4.1, Rib and Slot arguments in `README.md`, and the
-`snapshot_edges()` references in docstrings) were fixed upstream.
+- `docs/api-design.md` sections 15, 17 and 18, plus the migration table
+- `docs/conventions.md` 1.10 (body topology), 1.11 (editing matrix, including
+  every dimension that failed), 1.12 (patterns, booleans, constraints,
+  suppression)
+- `docs/capabilities.md`, `docs/status.md`
+- `src/auto_3dx/`: `errors.py`, `core/part.py`, `core/application.py`,
+  `geometry/part_design.py`, `geometry/sketch.py`, `geometry/constraint.py`,
+  `geometry/bodies.py`, `geometry/topology.py`, `parameters/collection.py`,
+  `formulas/`, plus introspection of the installed package for exact signatures
+- `tests/integration/test_editing_live.py`, `test_phase3_live.py`, and the
+  `scripts/acceptance/phase2_editing.py` / `phase3_operations.py` scripts
 
 ## Sync procedure
 
-1. `git status` and `git log <last-reviewed>..HEAD` in the auto-3dx clone. If the
-   last reviewed commit is not an ancestor of `HEAD`, compare trees with
-   `git diff <last-reviewed> HEAD`. Read the diffs that touch `src/`,
-   `pyproject.toml`, `docs/api-design.md`, `docs/capabilities.md`,
-   `docs/status.md`, `README.md`, `tests/integration/` and `scripts/probes/`.
-2. Ignore internal refactors that leave the public API, safety semantics,
-   environment support, and evidence state unchanged.
-3. For each agent-visible change, update the smallest part of the skill:
-   `SKILL.md` for workflow and safety rules, `references/capabilities.md` for
-   capability labels and environment evidence, `references/safety.md` for
-   detailed semantics, `references/examples.md` for call shapes. Promote a
-   capability or environment to Verified only when a live integration test
-   drives it; a class, a mock test, a CI configuration, or a probe of the
-   underlying raw reads is not enough. A completed CI run is unit evidence only.
-4. Remove obsolete patterns and workarounds, and add newly retired names to
-   `RETIRED_NAMES` in `scripts/validate_skill.py`.
-5. Run the validator with the interpreter whose auto-3dx installation should be
-   checked (venv, Conda or other):
-   `python skills/global/auto-3dx/scripts/validate_skill.py`. It prints the
-   interpreter and `auto_3dx` it used. An API check that reports SKIPPED has not
-   validated the examples.
-6. Search the skill for names the upstream diff removed or renamed, and for
-   machine-specific interpreter paths or environment names.
-7. Update the tables above with the new commit, date and evidence state.
-8. Review the diff and commit. Do not push unless asked.
+1. `git status` and `git log <last-reviewed>..HEAD` in the auto-3dx clone; if the
+   commit is not an ancestor, compare trees instead. Read the diffs touching
+   `src/`, `docs/api-design.md`, `docs/conventions.md`, `docs/capabilities.md`,
+   `docs/status.md`, `README.md`, `tests/integration/` and `scripts/`.
+2. Ignore internal refactors that leave the public API, safety semantics and
+   evidence state unchanged.
+3. Verify exact names by introspecting the installed package, not from any
+   prompt or summary.
+4. Update the smallest part of the skill: `SKILL.md` for workflow and core
+   rules, `references/capabilities.md` for the matrix, `references/safety.md`
+   for semantics, `references/topology.md`, `references/editing.md`,
+   `references/part-design.md` for detail, `references/examples.md` for call
+   shapes. Promote to Verified only with a live integration test; a CI run is
+   unit evidence only. Never flatten partial support into "yes".
+5. Add newly retired names to `RETIRED_NAMES` in `scripts/validate_skill.py`,
+   and list new code-bearing reference files in `CODE_FILES`.
+6. Run the validator with the interpreter whose auto-3dx installation should be
+   checked: `python skills/global/auto-3dx/scripts/validate_skill.py`.
+7. Search the skill for removed or renamed names, stale recovery guidance, and
+   machine-specific interpreter paths.
+8. Update the tables above, including the phase marker at the top.
+9. Review the diff. Commit only when the user asks; never push unasked.
