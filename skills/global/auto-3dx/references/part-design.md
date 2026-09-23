@@ -1,7 +1,32 @@
 # Part Design operations
 
-Patterns, multi-body booleans, constraint removal and feature suppression.
-Upstream contract: `docs/api-design.md` section 18.
+Pad and Pocket direction, patterns, multi-body booleans, constraint removal and
+feature suppression. Upstream contract: `docs/api-design.md` sections 18–19.
+
+## Pad and Pocket direction
+
+```python
+from auto_3dx.geometry.part_design import (
+    DIRECTION_ALONG_SKETCH_NORMAL, DIRECTION_AGAINST_SKETCH_NORMAL,
+)
+cut = part.part_design.create_pocket("HOLE", sketch, 20.0,
+                                     direction=DIRECTION_ALONG_SKETCH_NORMAL)
+cut.direction                   # read back from the model
+cut.set_direction(DIRECTION_AGAINST_SKETCH_NORMAL)
+cut.reverse_direction()         # neither setter rebuilds
+```
+
+- `create_pad` and `create_pocket` take `direction=None` by default, which keeps
+  CATIA's own default: **along** the sketch normal for a Pad, **against** it for a
+  Pocket. `Pad` and `Pocket` both expose `direction`, `set_direction()` and
+  `reverse_direction()`. `ensure_pad` / `ensure_pocket` take no direction.
+- **The zero-effect pocket trap.** A pocket sketched on XY under a block cuts
+  downward into nothing by default; it creates, rebuilds successfully, and
+  removes **0 mm³**. A successful rebuild does not prove the cut happened.
+- When direction matters, pass it explicitly and **verify by volume** (or by a
+  semantic query) that material was removed or added. Do not reverse a feature
+  through an offset-plane workaround.
+- Direction control covers Pad and Pocket only — not Shaft, Groove or Rib.
 
 ## Circular pattern
 
@@ -122,3 +147,8 @@ reversible way:
 2. If the update fails, activate the feature again.
 3. Update again and confirm with `part.is_up_to_date()`.
 4. Do **not** delete downstream features to make a suppression stick.
+
+`part.inspect.update_issues()` after such a failure shows the suppressed feature
+as inactive and its dependants as not up to date. The dependants are symptoms;
+the cause is the suppression you just made. Do not treat the first dirty
+feature as the culprit (safety.md §3).

@@ -1,7 +1,9 @@
 # auto-3dx topology
 
-Edges and faces, how to scope them to a body, and why a snapshot is only good
-for a moment. Upstream contract: `docs/api-design.md` section 7.
+Edges and faces, how to scope them to a body, what ownership means, and why a
+snapshot is only good for a moment. Upstream contract: `docs/api-design.md`
+section 7. **Selecting** a face or edge is done by measured geometry:
+[geometry-query.md](geometry-query.md).
 
 ## Taking a snapshot
 
@@ -19,57 +21,68 @@ with part.work_in(housing):
 topology together, and CATIA will accept a feature built from the wrong body's
 edge and only fail at the next rebuild.
 
-## Ownership
-
-Every `Edge` and `Face` carries, read from the model at snapshot time:
+## What a handle carries
 
 | Property | Meaning |
 |---|---|
-| `owner_body` | The raw body the reference belongs to |
-| `owner_body_name` | That body's name |
-| `owner_feature_name` | The feature that produced the reference |
-| `index` | Position in *this* snapshot — not an identity |
-| `descriptor` | CATIA's BRep string, for logging only |
+| `geometry` | Measured facts — the basis for selection (`geometry-query.md`) |
+| `owner_body`, `owner_body_name` | The body the reference belongs to, or `None` when unknown |
+| `current_owner_feature_name` | The feature CATIA **currently** reports as the owner |
+| `owner_feature_name` | Older alias of the same value; prefer the explicit name |
+| `index` | Position in *this* snapshot — diagnostics only, never intent |
+| `descriptor` | CATIA's BRep string — logging only, never parsed for selection |
 
-Part Design compares the reference's owner with the body it is building in and
-raises `CrossBodyReferenceError` **before** calling CATIA. Treat that as a
-targeting mistake: take a snapshot of the right body. Never route around it with
-raw COM.
+### Current owner is not provenance
 
-A body's edges include the **wire edges of sketches its features consumed**.
-Those are not valid fillet or chamfer inputs — a live fillet attempt on one
-failed. Select with `owner_feature_name` after inspecting the model:
+`current_owner_feature_name` is the feature CATIA reports as owning the BRep
+**now**, which for a solid is the last feature that produced the result. Live,
+after a fillet, every edge of the solid — including the untouched ones —
+reported the fillet. It does **not** say which feature created an edge; do not
+make design-history assumptions from it. Select by geometry, and use
+`owned_by(...)` in a query only as a narrowing criterion.
 
-```python
-solid_edges = [e for e in part.topology.edges(body=housing)
-               if e.owner_feature_name == "HOUSING_PAD"]
-```
+### Unknown body stays unknown
+
+The owning body is read from the model. When CATIA's parent chain does not reach
+a body (live, after a session restart, consumed-sketch references returned
+generic objects), the SDK looks the feature name up among the bodies and accepts
+the answer only if **exactly one** body matches. Otherwise ownership stays
+unknown.
+
+`owner_body_name is None` does **not** mean "main body". Never guess ownership.
+
+## Cross-body guard
+
+Part Design compares a reference's owner with the body it is building in and
+raises `CrossBodyReferenceError` **before** calling CATIA. Treat it as a
+targeting mistake: take a snapshot of the right body. When ownership is unknown,
+the guard allows the call through rather than refusing on a missing answer.
+
+A body's edges include the **wire edges of sketches its features consumed**,
+which a fillet or chamfer cannot use. Semantic queries on the solid's edges
+(`lines()`, `circular()`, position, length) are how to pick a solid edge.
 
 ## Staleness
 
 A snapshot is stamped with the Part's model generation. Anything that mutates
-the model through any wrapper of that Part invalidates it, including value
-writes, closing a `sketch.edit()` block, body visibility changes, **feature
-suppression or activation**, and any rebuild whether it succeeded or not. Using a
-stale handle raises `StaleSnapshotError` before CATIA is touched.
+the model through any wrapper of that Part invalidates it — value writes,
+closing a `sketch.edit()` block, body visibility, feature suppression or
+activation, Pad/Pocket direction changes, plane edits, and any rebuild, whether
+it succeeded or not. Using a stale handle, or a query built on one, raises
+`StaleSnapshotError` before CATIA is touched.
 
-After `StaleSnapshotError`, take a new snapshot **and re-identify the target**:
-the same index in a new snapshot can be a different edge.
+After it, take a new snapshot and **re-run the query**; never reuse the old
+index, since the same index can now be a different edge.
 
 ## Limits
 
 - **Body-level scoping is supported; feature-level scoping is not.** There is no
-  `edges(feature=...)`, and no verified `Topology.Edge,in,<feature>` query. Do
-  not invent one.
-- **Ownership can be unknown.** When CATIA does not report an owner, the
-  cross-body guard allows the call through rather than refusing on a missing
-  answer. That is the guard's one hole.
-- **The generation registry is process-local.** A new Python process starts
-  fresh: an index, a descriptor or an assumption carried over from an earlier
-  process means nothing. Take a new snapshot in every process.
-- **There is no persistent topology identity.** No selector finds "the top face"
-  or "the edge at X". If the SDK cannot prove which edge the user means, say so
-  and ask.
+  `edges(feature=...)` and no verified `Topology.Edge,in,<feature>` query.
+- **The generation registry is process-local.** A fresh process must attach,
+  rediscover the model, take a new snapshot and re-run its queries. Never carry
+  an index, descriptor or selection across processes.
+- **No persistent topology identity.** A query re-identifies an element by
+  description on a fresh snapshot; nothing is stored.
 - Snapshots restore the user's CATIA selection; `SelectionNotRestoredWarning`
   means only UI selection was lost (safety.md §6).
 - Topology search needs the **active** Part, or `InactivePartError`.

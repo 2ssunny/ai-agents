@@ -4,28 +4,29 @@ Maintenance metadata for keeping this skill in step with the auto-3dx SDK.
 Agents using the skill do not need this file, and nothing in the skill depends
 on a specific commit at runtime.
 
-**This skill reflects SDK capabilities through Phase 3, SDK commit `a92fa7a`.**
+**This skill reflects SDK capabilities through Phase 4, SDK docs commit `6a74d07`.**
 
 ## Last review
 
 | Field | Value |
 |---|---|
 | Upstream repository | `https://github.com/2ssunny/auto-3dx` (local clone) |
-| Branch reviewed | `develop`, 15 commits ahead of `origin/develop`. Local review only |
-| Last reviewed commit | `a92fa7a` — `docs: document Phase 3 operations and their verified limits` |
-| Phase 1 | `3381f0c` safety fixes, `e095234` live validation, `b36c21f` docs |
-| Phase 2 | `08b3dfc` existing-model editing, `e5a248a` live validation, `ebb340a` docs |
-| Phase 3 | `f2ee36f` patterns / booleans / constraint removal / suppression, `b518ba3` live validation and raw-COM removal, `a92fa7a` docs |
+| Branch reviewed | `develop`, 18 commits ahead of `origin/develop`. Local review only |
+| Last reviewed commit | `6a74d07` — `docs: document Phase 4 geometry facts, queries and their verified limits` |
+| Phase 1 | `3381f0c`, `e095234`, `b36c21f` |
+| Phase 2 | `08b3dfc`, `e5a248a`, `ebb340a` |
+| Phase 3 | `f2ee36f`, `b518ba3`, `a92fa7a` |
+| Phase 4 | `335c797` geometry facts / semantic queries / safe plane edits, `60eb0ec` live validation, `6a74d07` docs |
 | Package version | `0.1.0` (pre-1.0; breaking changes expected) |
-| Reviewed on | 2026-09-19 |
-| Unit tests at review | 1089 passed, run during review in a standard CPython 3.14.2 venv (editable install of `develop`) |
-| Live integration at review | 56 passed, 6 skipped, plus Phase 1, Phase 2 and Phase 3 acceptance scripts, per upstream docs. Acceptance uses the public API only |
-| CI | Last ran at `9b2f402`; the reviewed commits are unpushed, so no CI result covers them |
+| Reviewed on | 2026-09-23 |
+| Unit tests at review | 1156 passed, run during review in a standard CPython 3.14.2 venv (editable install of `develop`) |
+| Live integration at review | 62 passed, 6 skipped, plus Phase 1–4 acceptance, per upstream docs. Phase 4 acceptance uses no raw COM, no topology indices and no descriptor parsing |
+| CI | Last ran at `9b2f402`; the reviewed commits are unpushed |
 
 Next sync starts from:
 
 ```bash
-git -C <auto-3dx-clone> log --oneline a92fa7a..HEAD
+git -C <auto-3dx-clone> log --oneline 6a74d07..HEAD
 ```
 
 Upstream history was rewritten once when it was published (2026-09-16). If a
@@ -37,89 +38,87 @@ recorded commit is ever missing from the ancestry, compare trees with
 | Upstream commit | Outcome |
 |---|---|
 | `23a0d86` | Initial skill |
-| `e32e747` | Live rerun promoted `SketchElement`, staleness and the error categories to Verified; export recorded as unavailable |
-| `6ec5426` | Selection-restoring topology searches, one generation per CATIA Part, `part.inspect` bodies / sets / topology counts |
-| `1d7162f` | Packaging and docs; the skill became environment-neutral (Conda is optional) |
+| `e32e747` | `SketchElement`, staleness and error categories promoted; export recorded as unavailable |
+| `6ec5426` | Selection-restoring topology, one generation per Part, inspection of bodies / sets / topology counts |
+| `1d7162f` | Environment-neutral skill (Conda optional) |
 | `9b2f402` | `part.inspect.in_work_object()`; CI on Windows CPython 3.11–3.14 |
-| `b36c21f` | **Phase 1**: body-scoped topology with ownership and `CrossBodyReferenceError`, `body.update()` / `part.update(target)`, `TargetNotUpToDateError`, `SupportNotUpdatedError`, `InactivePartError`, `EnumParam` reads. Update-failure guidance reversed to repair-before-delete |
-| `a92fa7a` | **Phases 2–3**: feature dimension editing, sketch element rediscovery, `work_at(feature)`, parameter dependency guard, circular pattern, multi-body booleans, constraint removal, feature suppression, `catia.active_window_title`. Skill reorganised into `topology.md`, `editing.md` and `part-design.md` |
+| `b36c21f` | **Phase 1**: body-scoped topology and ownership, targeted rebuilds, measurement and support preconditions, repair-before-delete |
+| `a92fa7a` | **Phases 2–3**: feature editing, sketch rediscovery, `work_at`, parameter guard, circular pattern, booleans, constraint removal, suppression |
+| `6a74d07` | **Phase 4**: measured geometry facts and semantic queries become the default way to select topology; owner semantics corrected; Pad/Pocket direction; editable and guarded reference planes; update diagnostics. New `geometry-query.md` |
 
 ## What changed for agents at this review
 
-**Phase 2 — editing an existing model.**
-
-- Verified feature dimension setters: fillet `radius`; chamfer `length1` and
-  `angle`; hole `diameter` and `depth`; shell `internal_thickness` and
-  `external_thickness`; thickness `offset`. Setters do not rebuild.
-- `sketch.elements()`, `sketch.get_element(name)`, `SketchElement.name` / `kind`
-  / `radius`, and `SketchElementNotFoundError`.
-- `part.work_at(feature)` for the history insertion position, distinct from
-  `work_in(body)`.
-- `part.parameters.dependents(name)` and the `ParameterInUseError` guard, driven
-  by `Formula.GetInParameter` rather than by parsing formula text.
-
-**Phase 3 — core CAD operations.**
-
-- `create_circular_pattern(name, feature, angular_instances,
-  angular_spacing_deg, axis="Z")` with list/get/remove and an editable angular
-  row; `radial_instances` read-only.
-- `create_boolean_remove` / `_add` / `_intersect` / `_assemble`, with the tool
-  body consumed permanently and `remove_boolean(..., delete_consumed_body=True)`
-  as the destructive removal.
-- `sketch.constraints.remove(...)`, edit-state aware.
-- `is_active` / `activate()` / `deactivate()` on Part Design features, advancing
-  the model generation.
-- `catia.active_window_title`, so scripts need no raw window read.
+- **Geometry facts.** `face.geometry` (`surface_type`, `area_mm2`, `center_mm`,
+  `perimeter_mm`, planar `normal` / `plane_origin_mm`, cylindrical `radius_mm`)
+  and `edge.geometry` (`curve_type`, `length_mm`, points, line `direction`,
+  circle/arc `radius_mm` / `center_mm` / `angle_deg`). Area is converted to mm²
+  by the SDK.
+- **Semantic queries.** `snapshot.query()` with type, orientation, size, position
+  and current-owner steps; `one()` raises `TopologyQueryNoMatchError` or
+  `TopologyQueryAmbiguousError`. Index- and descriptor-based selection is now
+  deprecated in the skill.
+- **Normal orientation limitation.** The planar normal is the supporting plane's
+  orientation; top and bottom faces of a block reported the same sign. The skill
+  teaches `normal_parallel(...).extreme(...)`.
+- **Owner semantics.** `current_owner_feature_name` added; `owner_feature_name`
+  documented as current ownership, not provenance. Owner-body resolution falls
+  back to a unique name match and otherwise stays unknown.
+- **Pad/Pocket direction.** `direction=` at creation, `direction`,
+  `set_direction()`, `reverse_direction()`; `None` keeps CATIA's default, which
+  for a Pocket can cut nothing while rebuilding successfully.
+- **Editable reference planes.** `OffsetPlane.set_offset`, `AnglePlane.set_angle`.
+- **In-use plane deletion guard.** `planes.dependents()`, `ReferenceInUseError`,
+  `force=True`.
+- **Update diagnostics.** `part.inspect.update_issues()` and
+  `PartUpdateError.issues` — affected state, not root cause.
+- **Rectangle limitation.** `rectangle()` creates four lines and no constraints.
 
 ## Deliberately not documented
 
-- **Circular pattern on X or Y.** Only `"Z"` was verified; the other origin
-  planes rotated about something the test geometry could not identify.
-- **`Chamfer.Length2`**, a generic `Hole.Depth`, generic `Thickness.Thickness` /
-  `.Value`, rectangular-pattern dimensions, multi-sections-solid dimensions:
-  each verified absent or unwritable, not merely untried.
-- **`Line2D` coordinate reads**: no coordinate members in this release.
-- **Dependency safety beyond formulas**: rules, checks, laws, programs and
-  design tables expose no verified input list.
-- **Suppression dependency analysis**: the SDK does not predict which
-  suppressions are safe, so the skill teaches suppress → update → reactivate.
-- **Per-instance pattern activation, boolean operand replacement, consumed-body
-  restoration**: no public API.
+- **A direction default change.** `direction=None` preserves CATIA's defaults;
+  the skill does not claim otherwise.
+- **Direction for Shaft, Groove and Rib**: not exposed.
+- **Outward normals, adjacency, cone/sphere/spline facts, provenance**: not
+  exposed, and listed as unsupported.
+- **Exact performance figures.** Upstream observed roughly one second for a
+  snapshot plus measurement on a small part and near-instant re-queries; the
+  skill only teaches "reuse a measured snapshot within one generation".
+- **Circular pattern on X or Y**, `Chamfer.Length2`, rectangular-pattern and
+  multi-sections-solid dimensions, `Line2D` coordinates, dependency safety
+  beyond formulas, suppression dependency prediction: unchanged from Phase 3.
 
-## Observed upstream detail
+## Observed upstream details
 
-`CircularPattern` and `BooleanOperation` are reachable through
-`auto_3dx.geometry.part_design` but are not re-exported from
-`auto_3dx.geometry`, unlike the other feature wrappers. Nothing in the skill
-depends on importing them directly — agents reach them through
-`part.part_design` — but it is worth raising upstream on the next pass.
+- `CircularPattern`, `BooleanOperation` and the `DIRECTION_*` constants live in
+  `auto_3dx.geometry.part_design` and are not re-exported from
+  `auto_3dx.geometry`. The skill imports the constants from `part_design`, as
+  upstream's own contract does.
+- `planes.get()` is annotated as returning the base `Plane`; the concrete object
+  is an `OffsetPlane` or `AnglePlane`. The validator accepts members defined on
+  an auto_3dx subclass for this reason.
+- `ensure_pad` / `ensure_pocket` take no `direction`; only `create_*` and the
+  setters do.
 
 ## Environment evidence
 
 | Environment | Unit-tested | Live-tested |
 |---|---|---|
-| Standard CPython venv, editable install | 1089 passed (3.14.2, this review) | 56 passed, 6 skipped (3.14.2, pywin32 312) |
+| Standard CPython venv, editable install | 1156 passed (3.14.2, this review) | 62 passed, 6 skipped (3.14.2, pywin32 312) |
 | Standard CPython venv, regular install | passed at an earlier commit | not run |
-| Conda environment, editable install | passed at an earlier commit (3.11.16) | predates Phases 2–3 |
+| Conda environment, editable install | passed at an earlier commit (3.11.16) | predates Phases 2–4 |
 | GitHub Actions Windows runner | passed on 3.11–3.14 at `9b2f402` | none (no 3DEXPERIENCE) |
-
-Remaining limitations: live integration has run on CPython 3.14.2 only for
-Phases 2–3; 32-bit Python, Microsoft Store Python and 3DEXPERIENCE releases
-other than `B428_Cloud` are unverified.
 
 ## Evidence reviewed
 
-- `docs/api-design.md` sections 15, 17 and 18, plus the migration table
-- `docs/conventions.md` 1.10 (body topology), 1.11 (editing matrix, including
-  every dimension that failed), 1.12 (patterns, booleans, constraints,
-  suppression)
-- `docs/capabilities.md`, `docs/status.md`
-- `src/auto_3dx/`: `errors.py`, `core/part.py`, `core/application.py`,
-  `geometry/part_design.py`, `geometry/sketch.py`, `geometry/constraint.py`,
-  `geometry/bodies.py`, `geometry/topology.py`, `parameters/collection.py`,
-  `formulas/`, plus introspection of the installed package for exact signatures
-- `tests/integration/test_editing_live.py`, `test_phase3_live.py`, and the
-  `scripts/acceptance/phase2_editing.py` / `phase3_operations.py` scripts
+- `docs/api-design.md` section 19 (facts, queries, direction, planes,
+  diagnostics, not-covered list) and section 7 (owner semantics, fallback)
+- `docs/conventions.md` 1.13; `docs/capabilities.md`, `docs/status.md`,
+  `README.md`
+- `src/auto_3dx/`: `geometry/facts.py`, `geometry/query.py`, `geometry/edges.py`,
+  `geometry/faces.py`, `geometry/planes.py`, `geometry/part_design.py`,
+  `inspect/summary.py`, `errors.py`, `core/part.py`, plus introspection of the
+  installed package for every signature used in the skill
+- `tests/integration/test_phase4_live.py`, `scripts/acceptance/phase4_geometry.py`
 
 ## Sync procedure
 
@@ -132,16 +131,16 @@ other than `B428_Cloud` are unverified.
 3. Verify exact names by introspecting the installed package, not from any
    prompt or summary.
 4. Update the smallest part of the skill: `SKILL.md` for workflow and core
-   rules, `references/capabilities.md` for the matrix, `references/safety.md`
-   for semantics, `references/topology.md`, `references/editing.md`,
-   `references/part-design.md` for detail, `references/examples.md` for call
-   shapes. Promote to Verified only with a live integration test; a CI run is
-   unit evidence only. Never flatten partial support into "yes".
-5. Add newly retired names to `RETIRED_NAMES` in `scripts/validate_skill.py`,
-   and list new code-bearing reference files in `CODE_FILES`.
+   rules; `capabilities.md` for the matrix; `safety.md` for semantics;
+   `geometry-query.md`, `topology.md`, `editing.md`, `part-design.md` for
+   detail; `examples.md` for call shapes. Promote to Verified only with a live
+   integration test. Never flatten partial support into "yes".
+5. Add retired names to `RETIRED_NAMES` and new code-bearing reference files to
+   `CODE_FILES` in `scripts/validate_skill.py`.
 6. Run the validator with the interpreter whose auto-3dx installation should be
    checked: `python skills/global/auto-3dx/scripts/validate_skill.py`.
-7. Search the skill for removed or renamed names, stale recovery guidance, and
-   machine-specific interpreter paths.
+7. Search the skill for removed names, index or descriptor selection, outward-
+   normal assumptions, provenance claims, stale recovery guidance, and
+   machine-specific paths.
 8. Update the tables above, including the phase marker at the top.
 9. Review the diff. Commit only when the user asks; never push unasked.

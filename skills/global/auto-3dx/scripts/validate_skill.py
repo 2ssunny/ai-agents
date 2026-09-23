@@ -40,6 +40,7 @@ CODE_FILES = (
     "references/topology.md",
     "references/editing.md",
     "references/part-design.md",
+    "references/geometry-query.md",
 )
 ALLOWED_FRONTMATTER_KEYS = {"name", "description"}
 MAX_SKILL_LINES = 200
@@ -138,6 +139,16 @@ def return_type(function: Any) -> Inferred:
     except Exception:  # noqa: BLE001 -- unresolvable forward references are not errors
         return None
     return resolve_hint(hints.get("return"))
+
+
+def _auto_3dx_subclasses(cls: type) -> "list[type]":
+    """Lists every auto_3dx subclass of `cls`, depth first."""
+    found: "list[type]" = []
+    for subclass in cls.__subclasses__():
+        if subclass.__module__.startswith("auto_3dx"):
+            found.append(subclass)
+            found.extend(_auto_3dx_subclasses(subclass))
+    return found
 
 
 class ApiChecker:
@@ -327,6 +338,14 @@ class ApiChecker:
             except Exception:  # noqa: BLE001
                 return None
         static = inspect.getattr_static(cls, node.attr, MISSING)
+        if static is MISSING:
+            # A lookup typed as a base class (`planes.get()` -> `Plane`) may return a
+            # subclass (`OffsetPlane`); accept a member any auto_3dx subclass defines.
+            for subclass in _auto_3dx_subclasses(cls):
+                static = inspect.getattr_static(subclass, node.attr, MISSING)
+                if static is not MISSING:
+                    cls = subclass
+                    break
         if static is MISSING:
             self.fail(node, f"{cls.__name__} has no member {node.attr!r}")
             return None

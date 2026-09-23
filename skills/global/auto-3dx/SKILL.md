@@ -37,8 +37,9 @@ that repository's own contract and probe workflow govern instead of this skill.
 ## Workflow
 
 ```text
-inspect the model -> rediscover objects by name -> choose body/history context
-  -> one logical mutation -> explicit update -> inspect/measure/verify -> repeat
+inspect -> rediscover by name -> choose body/history context -> fresh topology
+  -> semantic query -> one() -> one logical mutation -> explicit update
+  -> on failure: read issues, roll back -> measure/query/verify -> repeat
 ```
 
 1. **Attach and choose the Part.** `Catia.attach()`; `ActiveEditor` does not
@@ -68,7 +69,8 @@ inspect the model -> rediscover objects by name -> choose body/history context
    because measurement never rebuilds for you.
 
 For a risky edit, record the previous valid value first, then modify → update →
-roll back and update again if it fails.
+roll back and update again if it fails. After any geometry-changing rebuild,
+take a fresh snapshot and re-run the query; never carry a face or edge forward.
 
 ## Public API only
 
@@ -79,9 +81,11 @@ roll back and update again if it fails.
   `part.part_design`, `part.topology`, ...); import specific errors from
   `auto_3dx.errors`.
 - Never use `part.com_object`, `catia.com_object`, `win32com`, `com3dx`,
-  `ShapeFactory`, `HybridShapeFactory`, `Selection`, or private `_…` members to
-  do ordinary CAD work. `com_object` is the single escape hatch and is for
-  read-only reads the SDK itself points to, such as a `SketchElement`'s radius.
+  `ShapeFactory`, `HybridShapeFactory`, `Selection`, `MeasurableService`, or
+  private `_…` members to do ordinary CAD work, and never select topology by
+  index or by parsing `descriptor` strings. `com_object` is the single escape
+  hatch and is for read-only reads the SDK itself points to, such as a
+  `SketchElement`'s radius.
 - Raw Automation is appropriate **only** during explicit SDK-development or
   capability-probe work inside the auto-3dx repository.
 - **If an ordinary modelling task reaches a missing public capability: stop and
@@ -90,10 +94,18 @@ roll back and update again if it fails.
 
 ## Core safety rules
 
-- **Topology is transient and body-owned.** Scope snapshots to the body you are
-  building in, select edges by `owner_feature_name`, and take a fresh snapshot
-  before every topology-consuming call — including after suppression. Details
-  and limits: [references/topology.md](references/topology.md).
+- **Select topology by geometric intent.** Query a body-scoped snapshot by
+  measured facts and require `one()` — "the planar face parallel to Z that is
+  highest along Z", not `faces[0]`. No match means the assumptions are wrong;
+  several means the intent is underspecified. Never settle it with an index,
+  `first()` or descriptor parsing. **Plane normals are not outward**: decide top
+  or bottom by position. Details:
+  [references/geometry-query.md](references/geometry-query.md).
+- **Topology is transient and body-owned.** Take a fresh snapshot before every
+  topology-consuming call, including after suppression, direction changes and
+  plane edits. `current_owner_feature_name` is the current owner, not the feature
+  that created an edge, and an unknown `owner_body_name` is unknown — not the main
+  body. Details: [references/topology.md](references/topology.md).
 - **Update failure is repaired, not deleted.** See below.
 - **Editing beats recreating.** Verified feature dimensions are editable in
   place; sketch elements are rediscovered by name; a parameter a formula reads is
@@ -102,6 +114,14 @@ roll back and update again if it fails.
 - **Some operations consume or invalidate other objects.** A boolean consumes its
   tool body permanently; suppression can break downstream features. Details:
   [references/part-design.md](references/part-design.md).
+- **A successful rebuild does not prove intent.** A Pocket in CATIA's default
+  direction can cut nothing and still rebuild. Pass `direction=` when it matters
+  and verify by volume or by a query.
+- **Reference planes are editable and guarded.** `set_offset` / `set_angle`, then
+  `part.update()`. A plane a sketch still uses is refused for removal
+  (`ReferenceInUseError`): remove the feature and its sketch first.
+- `editor.rectangle()` draws four unconstrained lines; add constraints yourself
+  when the profile must stay rectangular under edits.
 - Selection-based operations (topology search, `remove_*`, body visibility,
   constraint removal) need the **active** Part, or `InactivePartError`.
 - A plane from `part.planes` cannot support a sketch until it has been rebuilt:
@@ -116,7 +136,9 @@ roll back and update again if it fails.
 it is repaired. **Repair first; deletion is the last resort.** Nothing is rolled
 back or deleted automatically.
 
-1. Stop mutating and identify what the failure followed.
+1. Stop mutating. Read `error.issues` (or `part.inspect.update_issues()`) to see
+   what is affected — symptoms, not the cause — then identify the edit the
+   failure followed.
 2. **A reversible edit to a previously valid model** — a dimension, parameter,
    formula value, or a suppression you just applied: restore the previous value
    or state and rebuild again. CATIA heals the model and dependent features
@@ -166,8 +188,9 @@ deletes everything inside it.
 |---|---|
 | [capabilities.md](references/capabilities.md) | What is supported, partially supported, and not |
 | [safety.md](references/safety.md) | Errors, generation, removal side effects, raw-COM policy |
+| [geometry-query.md](references/geometry-query.md) | Measured face/edge facts, semantic queries, strict cardinality |
 | [topology.md](references/topology.md) | Body-scoped topology, ownership, staleness |
-| [editing.md](references/editing.md) | Feature dimensions, sketch rediscovery, `work_at`, parameter dependencies |
-| [part-design.md](references/part-design.md) | Circular pattern, booleans, constraint removal, suppression |
+| [editing.md](references/editing.md) | Feature dimensions, sketch rediscovery, `work_at`, reference planes, parameter dependencies |
+| [part-design.md](references/part-design.md) | Pad/Pocket direction, circular pattern, booleans, constraint removal, suppression |
 | [examples.md](references/examples.md) | Minimal end-to-end patterns |
 | [upstream-sync.md](references/upstream-sync.md) | Maintenance: last reviewed SDK state |

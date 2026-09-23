@@ -84,6 +84,43 @@ part.update()
   Python exception, or Automation failure. The two contexts nest, and the
   innermost one decides.
 
+## Reference planes
+
+Offset and angle planes are editable in place, and the sketches and features on
+them follow the next rebuild.
+
+```python
+plane = part.planes.create_offset("BOSS_PLANE", support="XY", offset=10.0)
+part.update()
+previous = plane.offset
+plane.set_offset(8.0)            # AnglePlane has angle / set_angle(degrees)
+part.update()                    # the sketch on it and its features regenerate
+```
+
+- `part.planes.get(name)` finds a plane again in a fresh process. Check its kind
+  before editing: an offset plane has `offset` / `set_offset`, an angle plane
+  `angle` / `set_angle`.
+- Setters do not rebuild. If the rebuild fails, restore the previous value and
+  update again before touching any downstream geometry.
+- Reacquire topology after a plane edit: everything built on the plane moved.
+
+### Deleting a plane safely
+
+CATIA lets a plane be deleted while a sketch still uses it, orphaning the sketch
+and every feature on it so the next rebuild fails. The SDK refuses by default:
+
+```python
+part.planes.dependents(plane)    # ['BOSS_SK'] -- sketches on this plane
+part.planes.remove(plane)        # ReferenceInUseError while a sketch uses it
+```
+
+Preferred lifecycle: remove the downstream feature, then its sketch, then the
+plane. `remove(plane, force=True)` (and `remove_geometrical_set(force=True)`)
+deletes anyway and leaves the dependants failing — only with explicit intent to
+orphan them. Dependency is found by comparing sketch frames with the plane
+frame, so a sketch on a different plane with an identical frame also counts;
+the guard errs towards refusing.
+
 ## Parameters a formula depends on
 
 ```python

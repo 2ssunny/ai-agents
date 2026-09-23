@@ -40,8 +40,8 @@ Catch a category when the reaction is the same; catch a concrete class from
 |---|---|---|
 | `SessionError` (`Com3dxNotFoundError`, `CatiaConnectionError`, `NoActiveEditorError`, `NoActivePartError`, `InactivePartError`) | Could not reach or use a session, or the Part is not the active one | Report it; ask the user to start 3DEXPERIENCE, open or activate the Part, or leave the Assembly context |
 | `ValidationError` (`StaleSnapshotError`, `CrossBodyReferenceError`, `SupportNotUpdatedError`, `UnsupportedSupportError`, `ParameterTypeError`, ...) | Refused before any COM call; the model is untouched | Fix the arguments or context, per the table below |
-| `NotFoundError` (`ParameterNotFoundError`, `SketchNotFoundError`, `SketchElementNotFoundError`, `FeatureNotFoundError`, `BodyNotFoundError`, `PlaneNotFoundError`, `ConstraintNotFoundError`, ...) | No object with that name, decided by enumeration | Re-list the current names and ask when unsure |
-| `ConflictError` (`*AlreadyExistsError`, `FeatureConflictError`, `AmbiguousNameError`, `BodyRemovalError`, `TargetNotUpToDateError`, `ParameterInUseError`, `BooleanOperationError`) | The model's names or state block the request; nothing was created or changed | Resolve per the table below |
+| `NotFoundError` (`ParameterNotFoundError`, `SketchNotFoundError`, `SketchElementNotFoundError`, `TopologyQueryNoMatchError`, `FeatureNotFoundError`, `BodyNotFoundError`, `PlaneNotFoundError`, `ConstraintNotFoundError`, ...) | No object with that name, decided by enumeration | Re-list the current names and ask when unsure |
+| `ConflictError` (`*AlreadyExistsError`, `FeatureConflictError`, `AmbiguousNameError`, `BodyRemovalError`, `TargetNotUpToDateError`, `ParameterInUseError`, `BooleanOperationError`, `TopologyQueryAmbiguousError`, `ReferenceInUseError`) | The model's names or state block the request; nothing was created or changed | Resolve per the table below |
 | `AutomationError` | CATIA was called; the model may have changed. Carries `hresult` | Inspect before any further mutation |
 | `PartUpdateError` | A rebuild failed and the model is invalid | Run the recovery procedure in §3 |
 | `PartialCreationError` | Created, but the follow-up rename failed; a default-named object is left behind | Find it through `inspect.summary()` and remove it before retrying |
@@ -59,6 +59,9 @@ Specific errors and the correct response:
 | `BooleanOperationError` | Check the tool body: it must not be the target, from another Part, or already consumed |
 | `UnsupportedSupportError` | An unsupported plane or axis (for example a circular-pattern axis other than `"Z"`) |
 | `InactivePartError` | Activate the Part in CATIA and retry |
+| `TopologyQueryNoMatchError` | The query's assumptions are wrong: read the candidate facts in the message and fix the criteria |
+| `TopologyQueryAmbiguousError` | The intent is underspecified: add a criterion. Never fall back to `first()` or an index |
+| `ReferenceInUseError` | A sketch still uses the plane: remove the feature, then the sketch, then the plane |
 
 Warnings sit outside the hierarchy, so `except Auto3dxError` never catches one.
 `SelectionNotRestoredWarning` (a `UserWarning`) is the only one; see §6.
@@ -68,6 +71,16 @@ Warnings sit outside the hierarchy, so `except Auto3dxError` never catches one.
 `PartUpdateError` leaves the model invalid, and **every later rebuild fails until
 it is repaired**. Nothing is rolled back or deleted automatically: the SDK cannot
 know which change you meant to keep, and removing a pad cascades to its sketch.
+
+**Read the diagnostics, but not as a cause.** `part.inspect.update_issues()` and
+`PartUpdateError.issues` return `UpdateIssue` records (`name`, `kind`,
+`body_name`, `up_to_date`, `active`) for every feature. They list **symptoms,
+not the cause**: live, an invalid boss height flagged the fillet and pocket
+downstream of the boss, not the boss itself, and a suppressed base pad showed as
+inactive while its dependants showed as not up to date. The first dirty feature
+is not necessarily the culprit, and `issues` is `()` when it could not be read.
+Use them to see what is affected, then look at the most recent edit and the
+history order. Never delete every listed object.
 
 **Repair before deleting.** Distinguish the two cases:
 
@@ -110,7 +123,7 @@ same call unchanged.
 | `remove_pocket` | The sketch **stays**; remove it separately if you created it |
 | `formulas.remove` | The target parameter keeps the last computed value |
 | `parameters.remove` | Refused with `ParameterInUseError` while a formula reads it; `force=True` leaves an orphaned relation |
-| `planes.remove(plane)` | An angle plane's axis points and line stay; `remove_geometrical_set()` removes everything the collection created |
+| `planes.remove(plane)` | Refused with `ReferenceInUseError` while a sketch uses the plane; `force=True` orphans the dependants. An angle plane's axis points and line stay; `remove_geometrical_set()` has the same guard |
 | `bodies.remove(name, delete_contents=True)` | Deletes every feature and sketch in that body. Refused without the flag, and always refused for the main body (`BodyRemovalError`) |
 | `remove_boolean(name, delete_consumed_body=True)` | **Destroys the consumed tool body permanently.** The target geometry returns; the tool body does not |
 | `sketch.constraints.remove(...)` | Runs inside a sketch edition; indices of the remaining constraints shift, so never hold one |
@@ -179,12 +192,15 @@ tracking and ownership checks, and a normal workflow never needs it.
   behind `com_object`.
 - Not allowed in ordinary work: any raw mutation, raw topology handling, raw save
   or export, reaching for `ShapeFactory`, `HybridShapeFactory`, `Selection`,
+  `MeasurableService` / `MeasureService`,
   `win32com`, `com3dx` or private `_…` members, or passing a raw object to get
   around a `ValidationError` such as `CrossBodyReferenceError`. Use
   `catia.active_window_title` rather than reading the window through COM, and
   `sketch.constraints.remove(...)` rather than `Constraints.Remove` or
   `Selection.Delete`. Raw `PartDocument.ExportData` failed live on PLM-backed
   documents and left an unexplained extra editor; do not try it.
+- Never select topology by index or by parsing `descriptor` strings; select by
+  measured geometry through a semantic query (`geometry-query.md`).
 - **If a public capability is missing, stop and report the SDK gap.** Raw
   Automation is appropriate only during explicit SDK-development or
   capability-probe work inside the auto-3dx repository.
