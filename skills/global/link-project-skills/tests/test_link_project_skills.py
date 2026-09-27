@@ -8,11 +8,14 @@ saying so.
 Symlink creation can be unavailable (Windows without Developer Mode, some
 sandboxes); those tests skip rather than fail, and the mapping tests — which need
 no filesystem links — always run.
+
+Every run passes an explicit --config inside a temporary directory, so the
+developer's own agent-config.json and local checkouts never influence a result.
 """
 
 from __future__ import annotations
 
-import os
+import json
 import sys
 import tempfile
 import unittest
@@ -20,10 +23,11 @@ from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = SKILL_DIR.parents[2]
-LINKER_DIR = REPO_ROOT / "skills" / "global" / "link-project-skills" / "scripts"
+LINKER_DIR = SKILL_DIR / "scripts"
 sys.path.insert(0, str(LINKER_DIR))
 
 import link_project_skills as lps  # noqa: E402
+import skill_links  # noqa: E402
 
 
 def _symlinks_available() -> bool:
@@ -50,12 +54,29 @@ class LinkerCase(unittest.TestCase):
         self.root = Path(self._tmp.name)
         self.project = self.root / "study-project"
         self.project.mkdir()
+        self.config = self.root / "agent-config.json"
         self.addCleanup(self._tmp.cleanup)
 
     def run_linker(self, *argv: str) -> tuple[list[lps.Action], int]:
-        """Invoke the linker with the project pre-filled."""
-        args = lps.build_parser().parse_args(["--project", str(self.project), *argv])
+        """Invoke the linker with the project and an isolated config pre-filled."""
+        args = lps.build_parser().parse_args(
+            ["--project", str(self.project), "--config", str(self.config), *argv]
+        )
         return lps.run(args)
+
+    def make_external(self, name: str, folder: str | None = None) -> Path:
+        """Create an independent skill checkout with SKILL.md at its root."""
+        checkout = self.root / "checkouts" / (folder or f"{name}-skill")
+        checkout.mkdir(parents=True)
+        (checkout / "SKILL.md").write_text(
+            f"---\nname: {name}\ndescription: test skill\n---\n", encoding="utf-8"
+        )
+        return checkout
+
+    def register(self, name: str, path: Path) -> None:
+        """Write an agent-config.json registering one external skill."""
+        config = {"skills": {"external": {name: {"path": str(path)}}}}
+        self.config.write_text(json.dumps(config), encoding="utf-8")
 
     def outcomes(self, actions: list[lps.Action]) -> dict[str, str]:
         """Map each link path's basename+parent to its outcome."""
@@ -74,10 +95,11 @@ class TestRepositoryResolution(unittest.TestCase):
         self.assertTrue((lps.REPO_ROOT / lps.REPO_MARKER).is_file())
 
     def test_no_absolute_path_is_hardcoded(self) -> None:
-        source = (LINKER_DIR / "link_project_skills.py").read_text(encoding="utf-8")
-        for fragment in ("C:\\Users", "/home/user/", "/Users/"):
-            with self.subTest(fragment=fragment):
-                self.assertNotIn(fragment, source)
+        for script in sorted(LINKER_DIR.glob("*.py")):
+            source = script.read_text(encoding="utf-8")
+            for fragment in ("C:\\Users", "D:\\coding", "D:/coding", "/home/user/", "/Users/"):
+                with self.subTest(script=script.name, fragment=fragment):
+                    self.assertNotIn(fragment, source)
 
 
 class TestTargetMapping(LinkerCase):
@@ -114,7 +136,58 @@ class TestTargetMapping(LinkerCase):
     def test_linking_nothing_is_a_usage_error(self) -> None:
         with self.assertRaises(SystemExit) as caught:
             self.run_linker()
-        self.assertEqual(caught.exception.code, 2)
+        self.assertEqual(caught.exception.code, skill_links.EXIT_USAGE)
+
+
+class TestExternalSkills(LinkerCase):
+    """A registered external checkout is linked in place, never copied."""
+
+    def test_external_skill_resolves_to_its_checkout(self) -> None:
+        checkout = self.make_external("cad-tool")
+        self.register("cad-tool", checkout)
+        actions, code = self.run_linker("--skill", "cad-tool", "--dry-run")
+        self.assertEqual(code, lps.EXIT_OK)
+        self.assertEqual({Path(a.target) for a in actions}, {checkout})
+
+    def test_link_is_named_after_the_skill_not_the_checkout_folder(self) -> None:
+        checkout = self.make_external("cad-tool", folder="some-other-folder-name")
+        self.register("cad-tool", checkout)
+        actions, _ = self.run_linker("--skill", "cad-tool", "--dry-run")
+        self.assertEqual({Path(a.link).name for a in actions}, {"cad-tool"})
+
+    def test_internal_and_external_skills_link_together(self) -> None:
+        self.register("cad-tool", self.make_external("cad-tool"))
+        actions, code = self.run_linker("--skill", "exam-prep", "--skill", "cad-tool", "--dry-run")
+        self.assertEqual(code, lps.EXIT_OK)
+        self.assertEqual(len(actions), 4)
+        internal = REPO_ROOT / "skills" / "global" / "exam-prep"
+        self.assertIn(internal, {Path(a.target) for a in actions})
+
+    def test_missing_checkout_is_an_unresolved_skill(self) -> None:
+        self.register("cad-tool", self.root / "never-cloned")
+        with self.assertRaises(SystemExit) as caught:
+            self.run_linker("--skill", "cad-tool")
+        self.assertEqual(caught.exception.code, lps.EXIT_UNRESOLVED)
+        self.assertFalse((self.project / ".claude").exists())
+
+    def test_checkout_declaring_another_name_is_unresolved(self) -> None:
+        self.register("cad-tool", self.make_external("something-else"))
+        with self.assertRaises(SystemExit) as caught:
+            self.run_linker("--skill", "cad-tool")
+        self.assertEqual(caught.exception.code, lps.EXIT_UNRESOLVED)
+
+    def test_malformed_configuration_stops_before_anything_is_touched(self) -> None:
+        self.config.write_text("{not json", encoding="utf-8")
+        with self.assertRaises(SystemExit) as caught:
+            self.run_linker("--skill", "exam-prep")
+        self.assertEqual(caught.exception.code, skill_links.EXIT_CONFIG)
+        self.assertFalse((self.project / ".claude").exists())
+
+    def test_unregistered_name_is_unresolved(self) -> None:
+        self.register("cad-tool", self.make_external("cad-tool"))
+        with self.assertRaises(SystemExit) as caught:
+            self.run_linker("--skill", "no-such-skill")
+        self.assertEqual(caught.exception.code, lps.EXIT_UNRESOLVED)
 
 
 class TestDryRun(LinkerCase):
@@ -144,6 +217,30 @@ class TestIdempotency(LinkerCase):
         second, code = self.run_linker("--skill", "exam-prep")
         self.assertEqual(code, lps.EXIT_OK)
         self.assertTrue(all(action.outcome == "skipped" for action in second), msg=second)
+
+    def test_external_link_is_created_then_skipped(self) -> None:
+        self.register("cad-tool", self.make_external("cad-tool"))
+        first, _ = self.run_linker("--skill", "cad-tool")
+        self.assertTrue(all(a.outcome == "linked" for a in first), msg=first)
+        second, code = self.run_linker("--skill", "cad-tool")
+        self.assertEqual(code, lps.EXIT_OK)
+        self.assertTrue(all(a.outcome == "skipped" for a in second), msg=second)
+        for directory in (".agents/skills", ".claude/skills"):
+            self.assertTrue((self.project / directory / "cad-tool" / "SKILL.md").is_file())
+
+    def test_a_broken_link_is_repointed(self) -> None:
+        gone = self.root / "deleted-location"
+        gone.mkdir()
+        link = self.project / ".agents" / "skills" / "exam-prep"
+        lps.create_link(link, gone)
+        gone.rmdir()
+        self.assertFalse(link.exists())
+
+        actions, code = self.run_linker("--skill", "exam-prep", "--agents", "codex")
+        self.assertEqual(code, lps.EXIT_OK)
+        self.assertEqual(actions[0].outcome, "replaced")
+        self.assertIn("broken", actions[0].detail)
+        self.assertTrue((link / "SKILL.md").is_file())
 
     def test_links_resolve_to_the_canonical_skill(self) -> None:
         self.run_linker("--skill", "exam-prep")
@@ -187,6 +284,17 @@ class TestNonDestructive(LinkerCase):
         self.assertEqual(code, lps.EXIT_REJECTED)
         self.assertEqual(actions[0].outcome, "rejected")
         self.assertEqual((existing / "my-notes.md").read_text(encoding="utf-8"), "local work")
+
+    def test_a_real_directory_blocks_an_external_skill_too(self) -> None:
+        self.register("cad-tool", self.make_external("cad-tool"))
+        existing = self.project / ".agents" / "skills" / "cad-tool"
+        existing.mkdir(parents=True)
+        (existing / "SKILL.md").write_text("vendored copy", encoding="utf-8")
+
+        actions, code = self.run_linker("--skill", "cad-tool", "--agents", "codex")
+        self.assertEqual(code, lps.EXIT_REJECTED)
+        self.assertEqual(actions[0].outcome, "rejected")
+        self.assertEqual((existing / "SKILL.md").read_text(encoding="utf-8"), "vendored copy")
 
     def test_a_real_file_in_the_way_is_rejected(self) -> None:
         target = self.project / ".agents" / "skills" / "exam-prep"

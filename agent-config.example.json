@@ -19,6 +19,18 @@
     "humanMergesProtectedBranches": true
   },
 
+  "skills": {
+    "_readme": [
+      "External skills live in their own repositories, cloned anywhere on this",
+      "machine. Map each skill name (the 'name' in its SKILL.md) to the local",
+      "checkout that holds SKILL.md at its root; the linker scripts then link it",
+      "like a skill from skills/global/. Paths are absolute or start with ~/,",
+      "for example: \"my-skill\": { \"path\": \"~/dev/my-skill-repo\" }.",
+      "Leave 'external' empty when you use none."
+    ],
+    "external": {}
+  },
+
   "communication": {
     "replyLanguage": "en",
     "styleNotes": ""

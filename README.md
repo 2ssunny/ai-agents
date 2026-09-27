@@ -88,52 +88,52 @@ security rules, and the skills index.
 Claude Code는 `~/.claude/skills`, Codex는 `~/.agents/skills`에 있는 스킬을
 **모든 프로젝트에서** 자동으로 인식한다. Antigravity는
 `~/.gemini/config/skills`의 자체 스킬을 유지하면서
-`~/.gemini/config/skills.json`에 외부 공용 스킬 폴더를 등록할 수 있다.
+`~/.gemini/config/skills.json`에 등록된 공용 스킬 폴더를 추가로 읽는다.
 
-**Windows** (관리자 권한 불필요):
-```cmd
-cmd /c mklink /J "%USERPROFILE%\.claude\skills" "<ai-agents-root>\skills\global"
-cmd /c mklink /J "%USERPROFILE%\.agents\skills" "<ai-agents-root>\skills\global"
-```
+스크립트 하나가 세 곳을 모두 맞춰 준다. 두 폴더는 **실제 폴더**로 두고 그
+안에 스킬마다 링크를 하나씩 만든다 — 그래야 이 저장소의 스킬과
+[외부 스킬](#외부-스킬-독립-저장소)을 한 폴더에 함께 담을 수 있다.
 
-**macOS / Linux**:
 ```bash
-ln -s "<ai-agents-root>/skills/global" "$HOME/.claude/skills"
-ln -s "<ai-agents-root>/skills/global" "$HOME/.agents/skills"
+python3 <ai-agents-root>/skills/global/link-project-skills/scripts/link_global_skills.py \
+    --dry-run --antigravity        # 먼저 확인
+python3 <ai-agents-root>/skills/global/link-project-skills/scripts/link_global_skills.py \
+    --antigravity                  # 실제 적용
 ```
 
-> `~/.claude/skills` 또는 `~/.agents/skills`가 **이미 있으면** 폴더 전체를
-> 연결하는 명령이 실패한다. 직접 만든 스킬이 있으면 먼저
-> `skills/global/`로 옮기고, 빈 폴더면 지운 뒤 다시 실행한다.
+만들어지는 것:
 
-Antigravity는 디렉터리 정션을 스킬로 열거하지 않을 수 있으므로 중앙 스킬
-폴더를 `~/.gemini/config/skills.json`에 직접 등록한다. Windows 경로는 JSON
-문자열에서 `/`를 사용한다.
-
-```json
-{
-  "entries": [
-    {
-      "path": "<ai-agents-root>/skills/global"
-    }
-  ]
-}
 ```
+~/.claude/skills/<스킬>   → Claude Code가 읽음
+~/.agents/skills/<스킬>   → Codex가 읽음
+~/.gemini/config/skills.json 의 entries
+    <ai-agents-root>/skills/global            (이 저장소의 스킬)
+    <외부 체크아웃의 상위 폴더> + include_only   (외부 스킬마다 하나)
+```
+
+`skills.json`에는 항목을 **추가만** 하고 기존 항목은 고치거나 지우지 않는다.
+Windows 경로는 JSON 문자열에서 `/`로 기록된다.
+
+> **예전 방식으로 연결돼 있으면** — `~/.claude/skills`·`~/.agents/skills`
+> **폴더 자체**가 `skills/global`을 가리키는 정션/심볼릭 링크 — 스크립트가
+> `rejected`로 알려주고 아무것도 바꾸지 않는다. `--migrate`를 붙이면 그
+> 링크만 끊고(스킬 내용은 그대로) 실제 폴더로 바꾼 뒤 스킬별로 연결한다.
+> 다른 곳을 가리키는 링크나 직접 만든 스킬 폴더는 절대 건드리지 않는다.
 
 ### 5단계 — 연결 확인
 
 ```bash
 # macOS / Linux
-ls -l ~/.claude/skills          # → skills/global 을 가리키는 화살표가 보이면 성공
-cat ~/.claude/CLAUDE.md         # → 3줄 포인터가 보이면 성공
+ls -l ~/.claude/skills ~/.agents/skills   # → 스킬마다 원본을 가리키는 화살표가 보이면 성공
+cat ~/.claude/CLAUDE.md                   # → 3줄 포인터가 보이면 성공
 cat ~/.gemini/GEMINI.md
 cat ~/.gemini/config/skills.json
 ```
 
 ```powershell
 # Windows PowerShell
-Get-Item "$HOME\.claude\skills" | Select-Object LinkType, Target   # LinkType = Junction
-Get-Item "$HOME\.agents\skills" | Select-Object LinkType, Target   # LinkType = Junction
+Get-ChildItem "$HOME\.claude\skills" | Select-Object Name, LinkType, Target
+Get-ChildItem "$HOME\.agents\skills" | Select-Object Name, LinkType, Target
 Get-Content "$HOME\.claude\CLAUDE.md"
 Get-Content "$HOME\.codex\AGENTS.md"
 Get-Content "$HOME\.gemini\GEMINI.md"
@@ -163,14 +163,16 @@ python3 <ai-agents-root>/skills/global/link-project-skills/scripts/link_project_
 <프로젝트>/.claude/skills/exam-prep   → Claude Code가 읽음
 ```
 
-둘 다 저장소의 같은 폴더를 가리킨다. 복사본은 생기지 않는다.
+둘 다 스킬 원본의 같은 폴더를 가리킨다. 복사본은 생기지 않는다.
+[외부 스킬](#외부-스킬-독립-저장소)도 이름만 주면 똑같이 연결된다
+(예: `--skill auto-3dx`).
 
 ### 자주 쓰는 옵션
 
 | 옵션 | 언제 쓰나 |
 |---|---|
 | `--dry-run` | **뭘 할지 먼저 보고 싶을 때.** 파일을 전혀 건드리지 않는다. 처음이면 항상 이것부터 |
-| `--skill 이름` | 연결할 전역 스킬. 여러 개면 `--skill a --skill b` |
+| `--skill 이름` | 연결할 전역 스킬 또는 등록된 외부 스킬. 여러 개면 `--skill a --skill b` |
 | `--project-skills` | `skills/projects/<프로젝트명>/` 아래 스킬을 전부 연결 |
 | `--gitignore` | 프로젝트 `.gitignore`에 링크 경로를 추가 (링크는 머신마다 달라서 커밋하면 안 됨) |
 | `--agents claude` / `codex` | 한쪽 에이전트만 연결 |
@@ -185,13 +187,42 @@ python3 <ai-agents-root>/skills/global/link-project-skills/scripts/link_project_
 - **링크를 지울 때 원본은 안 지워진다.** 링크만 끊는다.
 - 결과가 `linked` / `skipped` / `replaced` / `rejected` 중 하나로 항상 표시된다. `rejected`가 하나라도 있으면 종료 코드가 0이 아니다.
 
-Windows는 정션, macOS·Linux는 심볼릭 링크를 자동으로 고른다. Windows에서 심볼릭 링크가 안 되면 정션으로 자동 폴백하므로 개발자 모드가 꺼져 있어도 동작한다.
+Windows는 심볼릭 링크를 먼저 시도하고, 개발자 모드가 꺼져 있어 안 되면 정션으로 자동 폴백한다. macOS·Linux는 심볼릭 링크를 쓴다. Claude Code와 Codex는 둘 다 따라간다.
 
 ### 예전 방식으로 연결된 프로젝트
 
 과거에는 `<프로젝트>/.claude/skills` **폴더 자체**가 `skills/projects/<프로젝트>`를 가리키는 정션이었다. 그 안에는 스킬별 링크를 만들 수 없다 (만들면 이 저장소 안에 파일이 생겨버린다).
 
 스크립트가 이걸 감지하면 **아무것도 바꾸지 않고 알려만 준다.** `--migrate`를 줄 때만 정션을 풀고 (링크만 끊으며 중앙 내용은 그대로) 실제 폴더로 바꾼 뒤 스킬별로 링크한다. 예전 방식 프로젝트는 마이그레이션 전까지 그대로 잘 동작한다.
+
+---
+
+## 외부 스킬 (독립 저장소)
+
+특정 프로젝트 전용이거나 따로 버전 관리하는 스킬은 **자기 저장소**에 두고,
+이 저장소에는 복사하지 않는다. 각 머신에 clone한 뒤 `agent-config.json`에
+이름과 로컬 경로만 등록하면 위의 두 스크립트가 이 저장소의 스킬과 똑같이
+연결한다.
+
+```json
+"skills": {
+  "external": {
+    "auto-3dx": { "path": "<auto-3dx-skill을 clone한 경로>" }
+  }
+}
+```
+
+- 체크아웃 **루트**에 `SKILL.md`가 있어야 하고, 키(`auto-3dx`)는 그
+  `SKILL.md`의 frontmatter `name`과 같아야 한다. 링크 이름은 이 스킬
+  이름을 따르므로 clone한 폴더 이름은 상관없다.
+- 경로는 절대 경로나 `~/`로 시작하는 경로만 된다. `agent-config.json`은
+  git에 올라가지 않으니 머신마다 자기 경로를 쓰면 된다.
+- 체크아웃이 없거나 이름이 다르면 해당 스킬만 `rejected`로 보고되고 나머지는
+  정상 연결된다. 설정 JSON 자체가 잘못되면 아무것도 건드리지 않고 멈춘다.
+- 외부 스킬 수정은 **그 스킬의 저장소에서** 한다. 이 저장소에 사본을 두지
+  않는다 (같은 이름이 `skills/global/`에 있으면 외부 쪽이 쓰이고 경고가 나온다).
+
+등록 후 `link_global_skills.py --antigravity`를 다시 돌리면 된다.
 
 ---
 
@@ -211,8 +242,13 @@ Windows는 정션, macOS·Linux는 심볼릭 링크를 자동으로 고른다. W
 | `orchestrate` | "서브에이전트 써서", "병렬로", "토큰 아껴" |
 | `server-runbook` | 서버 터미널 출력을 붙여넣거나 배포 문제 디버깅 |
 | `exam-prep` | 강의노트·기출·해설로 시험 대비 노트/풀이집 만들기 |
-| `link-project-skills` | "이 프로젝트에 스킬 연결해줘" |
-| `auto-3dx` | Python으로 3DEXPERIENCE CATIA 파트 조회·수정 (auto-3dx SDK 사용 계약) |
+| `link-project-skills` | "이 프로젝트에 스킬 연결해줘", "전역 스킬 다시 연결해줘" |
+
+### 외부 스킬 (별도 저장소, 등록한 머신에서만)
+
+| 스킬 | 원본 저장소 | 이럴 때 발동 |
+|---|---|---|
+| `auto-3dx` | `2ssunny/auto-3dx-skill` | Python으로 3DEXPERIENCE CATIA 파트 조회·수정 (auto-3dx SDK 사용 계약) |
 
 `exam-prep`은 스크립트와 테스트를 포함한 큰 스킬이다. 자세한 사용법은 [`skills/global/exam-prep/README.md`](skills/global/exam-prep/README.md) 참고.
 
@@ -228,18 +264,21 @@ Windows는 정션, macOS·Linux는 심볼릭 링크를 자동으로 고른다. W
 
 | 증상 | 원인과 해결 |
 |---|---|
-| 스킬 목록에 안 나온다 | 링크 직후에는 반영되지 않는다. **에이전트를 완전히 껐다 켠다.** |
-| `mklink` / `ln -s`가 "이미 존재한다"고 한다 | 그 자리에 폴더가 이미 있다. 내용을 확인해 옮기거나, 빈 폴더면 지우고 다시 실행 |
+| 스킬 목록에 안 나온다 | 링크 직후에는 반영되지 않을 수 있다. **에이전트를 완전히 껐다 켠다.** |
 | 스크립트가 `rejected`를 냈다 | 그 자리에 **진짜 폴더/파일**이 있다는 뜻. 스크립트는 일부러 안 지운다. 직접 옮기고 다시 실행 |
+| `~/.claude/skills`가 `legacy whole-directory link`로 `rejected` | 예전 방식(폴더 전체 정션)이다. `link_global_skills.py --migrate`로 변환 |
+| 외부 스킬이 `checkout not found` / `declares name`으로 `rejected` | `agent-config.json`의 경로가 실제 clone 위치인지, 키가 `SKILL.md`의 `name`과 같은지 확인 |
+| 종료 코드 3 (`agent-config.json is malformed`) | 설정 JSON 문법이나 `skills.external` 형식 오류. 메시지에 나온 항목을 고친다 |
 | 규칙이 적용 안 되는 것 같다 | 포인터 파일 경로가 실제 clone 위치와 맞는지 확인 (`cat ~/.claude/CLAUDE.md`) |
 | 프로젝트 규칙과 전역 규칙이 충돌한다 | 프로젝트 규칙이 우선한다. 다만 에이전트가 충돌을 감지하면 사용자에게 물어보게 돼 있다 |
-| `link_project_skills.py`가 저장소를 못 찾는다 | 스크립트를 저장소 밖으로 복사하지 말 것. 자기 위치로 저장소를 찾는다 |
+| 링크 스크립트가 저장소를 못 찾는다 | 스크립트를 저장소 밖으로 복사하지 말 것. 자기 위치로 저장소를 찾는다 |
 
 ---
 
 ## 스킬 추가·수정
 
-- **전역 스킬**: `skills/global/<이름>/SKILL.md` 생성 → `global_rule.md`의 SKILLS INDEX에 한 줄 추가.
+- **전역 스킬**: `skills/global/<이름>/SKILL.md` 생성 → `global_rule.md`의 SKILLS INDEX에 한 줄 추가 → `link_global_skills.py` 재실행.
+- **외부 스킬**: 스킬 저장소를 clone → `agent-config.json`의 `skills.external`에 등록 → `global_rule.md`의 External skills 표에 한 줄 추가 → `link_global_skills.py --antigravity` 재실행. 내용은 이 저장소에 두지 않는다.
 - **프로젝트 스킬**: `skills/projects/<프로젝트>/<이름>/SKILL.md` 생성 → `--project-skills`로 연결.
 - **형식**: YAML frontmatter(`name`, `description`) + 본문. `description`이 트리거 조건을 결정하므로 **"언제 쓰는지"를 구체적으로** 적을 것. 긴 참고자료는 `references/`로 분리.
 - **플랫폼 전용 frontmatter 필드는 쓰지 않는다** — 같은 SKILL.md를 Claude Code·Codex·Antigravity가 모두 읽어야 한다.
@@ -267,9 +306,9 @@ ai-agents/
 │   │   ├── server-runbook/       서버 페어 디버깅 (references/ 는 로컬 전용)
 │   │   ├── exam-prep/            시험 대비 노트·검증된 풀이집
 │   │   │                         (+ references/ scripts/ schemas/ tests/)
-│   │   ├── link-project-skills/  프로젝트 스킬 링크 (+ scripts/)
-│   │   └── auto-3dx/             3DEXPERIENCE CATIA SDK 사용 계약 (+ references/ scripts/)
+│   │   └── link-project-skills/  전역·프로젝트 스킬 링크, 외부 스킬 등록 (+ scripts/ tests/)
 │   └── projects/             ← 프로젝트별 스킬 (.gitignore — 로컬 전용)
+│                               외부 스킬은 여기 없다 — 자기 저장소에 있고 링크로만 연결
 ├── human-rules/
 │   └── general_rule.md       ← 인간 검토용 체크리스트
 ├── agent-config.example.json ← 개인 설정 템플릿 (복사해서 agent-config.json 생성)
@@ -280,7 +319,7 @@ ai-agents/
 
 ## 설계 원칙
 
-1. **Single Source of Truth** — 규칙·스킬은 여기 한 곳, 에이전트별로는 링크만.
+1. **Single Source of Truth** — 규칙·스킬은 원본 한 곳(이 저장소 또는 외부 스킬 저장소), 에이전트별로는 링크만.
 2. **Context Window 최적화** — Router(`global_rule.md`) → 필요한 문서만 로드.
 3. **Progressive Disclosure** — 스킬은 description → SKILL.md → references 순으로 필요한 만큼만 읽힘.
 4. **HITL** — `human-rules/`는 인간이 에이전트 산출물을 검증하는 통제 계층.

@@ -82,16 +82,23 @@ Do not refer to optional directories or templates unless they actually exist.
 
 ## 8. Skills
 
-Global skills live in `skills/global/`. Project-specific skills live in
-`skills/projects/{project}/`.
+Internal global skills live in `skills/global/`. Project-specific skills live in
+`skills/projects/{project}/`. External skills are independently versioned
+repositories cloned on each machine and registered by name under
+`skills.external` in `agent-config.json` (§9). An external skill's own
+repository is its only source: never copy it into this repository, and make
+changes to it there.
 
-- Claude discovers global skills through `~/.claude/skills`.
-- Codex discovers global user skills through `~/.agents/skills`.
-- Antigravity discovers global skills through `~/.gemini/config/skills` and
-  registers shared external skill directories through
-  `~/.gemini/config/skills.json`.
-- Projects may expose project skills through `.claude/skills` and/or
-  `.agents/skills` junctions.
+- Claude discovers global skills through per-skill links in `~/.claude/skills`.
+- Codex discovers global user skills through per-skill links in
+  `~/.agents/skills`.
+- Antigravity discovers its own skills in `~/.gemini/config/skills` and the
+  shared ones through entries in `~/.gemini/config/skills.json`: one for
+  `skills/global` and one per external checkout.
+- `skills/global/link-project-skills/scripts/link_global_skills.py` maintains
+  those global links and registrations; `link_project_skills.py` links internal,
+  external, or project skills into a project's `.claude/skills` and/or
+  `.agents/skills`.
 - Invoke a skill when the user names it or when the request clearly matches its
   description. Do not preload every `SKILL.md`.
 
@@ -107,8 +114,15 @@ Global skills live in `skills/global/`. Project-specific skills live in
 | `orchestrate` | Coordinate explicitly requested multi-agent work |
 | `server-runbook` | Pair-debug servers using project infrastructure references |
 | `exam-prep` | Source-grounded exam revision notes and verified worked solutions |
-| `link-project-skills` | Connect centralized project skills to Claude, Codex, and Antigravity |
-| `auto-3dx` | Safely inspect and edit a live 3DEXPERIENCE CATIA Part through the auto-3dx SDK |
+| `link-project-skills` | Link internal and external skills to Claude, Codex, and Antigravity, globally or per project |
+
+### External skills
+
+Available only on machines where the repository is cloned and registered.
+
+| Skill | Source repository | Purpose |
+|---|---|---|
+| `auto-3dx` | `2ssunny/auto-3dx-skill` | Safely inspect and edit a live 3DEXPERIENCE CATIA Part through the auto-3dx SDK |
 
 ### Project skills
 
@@ -119,8 +133,9 @@ skill directory when working in that project.
 ## 9. Personal configuration
 
 `agent-config.json` at this repository's root holds the operator's own settings —
-commit identity, branch conventions, and reply-style preferences — so that this
-shared repository carries no individual's identity. It is git-ignored;
+commit identity, branch conventions, reply-style preferences, and the local
+checkout paths of external skills — so that this shared repository carries no
+individual's identity or machine layout. It is git-ignored;
 `agent-config.example.json` documents the shape.
 
 - Read it when committing, opening a pull request, or when a reply-style
